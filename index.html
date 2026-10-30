@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FRvc · Carnet de vocabulaire</title>
+    <meta name="description" content="A daily French vocabulary notebook for the TCF and TEF Canada: spaced repetition, spelling, fill-in-the-blank, sentence building, gender and dictation." />
+    <meta name="theme-color" content="#f6f1e6" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="fonts/cormorant-garamond-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="css/style.css" />
+    <script type="module" src="js/app.js"></script>
+  </head>
+  <body data-view="home">
+    <a class="skip" href="#app">Aller au contenu</a>
+    <header class="nav">
+      <a class="logo" href="#/" aria-label="FRvc, accueil"><span class="mono">FR</span><i>vc</i></a>
+      <nav aria-label="Navigation principale">
+        <ol>
+          <li><a href="#/">Aujourd’hui</a></li>
+          <li><a href="#/" data-scroll="progres">Progrès</a></li>
+          <li><a href="#/" data-scroll="themes">Thèmes</a></li>
+          <li><a href="#/reglages">Réglages</a></li>
+        </ol>
+      </nav>
+      <a class="home-link" href="https://ellensyuu.github.io/">Ziyi Zhou <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main id="app" tabindex="-1">
+      <noscript><p style="padding: 160px 24px">FRvc needs JavaScript to run.</p></noscript>
+    </main>
+
+    <footer class="foot">
+      <p>
+        Conçu et dessiné par <a href="https://ellensyuu.github.io/">Ziyi Zhou</a> ·
+        <a href="https://github.com/EllenSyuu/FRvc">code source</a> ·
+        vos progrès restent dans ce navigateur
+      </p>
+    </footer>
+    <script>
+      // Nav links that point at a section of the home page.
+      document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[data-scroll]');
+        if (!a) return;
+        e.preventDefault();
+        var go = function () {
+          var el = document.getElementById(a.dataset.scroll);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        if (location.hash !== '#/' && location.hash !== '') {
+          location.hash = '#/';
+          setTimeout(go, 80);
+        } else go();
+      });
+    </script>
+  </body>
+</html>

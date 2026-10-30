@@ -1,0 +1,873 @@
+import { THEMES, WORDS } from '../data/deck.js';
+import { checkAnswer, clozeParts, plainSentence, sentenceTokens, bareNoun, isNoun, diffMarks } from './check.js';
+import { dayKey, addDays, grade, planDay, streak, isLearned, isNew, LEARNED_BOX, MAX_BOX } from './srs.js';
+import * as store from './store.js';
+import { initSpeech, speak, hasFrenchVoice } from './speech.js';
+import { heroPlate, themeIcon, tickMark, crossMark, speakerIcon, monthSketch, startBirds } from './art.js';
+
+/* ---------------------------------------------------------------- state */
+
+let S = store.load();
+const byId = Object.fromEntries(WORDS.map(w => [w.id, w]));
+const themeById = Object.fromEntries(THEMES.map(t => [t.id, t]));
+const app = document.getElementById('app');
+const persist = () => store.save(S);
+
+// Shown with the typographic apostrophe (l’emploi); the checker accepts either one.
+const esc = s =>
+  String(s).replace(/'/g, '’').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const shuffle = a => {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [b[i], b[j]] = [b[j], b[i]];
+  }
+  return b;
+};
+const pickOne = a => a[Math.floor(Math.random() * a.length)];
+
+const KIND = {
+  m: ['n.m.', '阳性名词'],
+  f: ['n.f.', '阴性名词'],
+  'm.pl': ['n.m.pl.', '阳性复数名词'],
+  'f.pl': ['n.f.pl.', '阴性复数名词'],
+  v: ['v.', '动词'],
+  adj: ['adj.', '形容词'],
+  adv: ['adv.', '副词'],
+  loc: ['loc.', '固定表达'],
+};
+const meaning = w => (S.settings.prompt === 'en' ? w.en : w.zh);
+const meaningAlt = w => (S.settings.prompt === 'en' ? w.zh : w.en);
+
+const today = () => dayKey();
+const logToday = () => {
+  const k = today();
+  S.log[k] = S.log[k] || { new: 0, right: 0, wrong: 0, done: false };
+  return S.log[k];
+};
+
+/* ---------------------------------------------------------------- shell */
+
+function setView(name) {
+  document.body.dataset.view = name;
+  window.scrollTo(0, 0);
+}
+
+function inkIn(root = app) {
+  // Start the pen-drawing transitions after the elements are in the DOM.
+  requestAnimationFrame(() => requestAnimationFrame(() => root.querySelectorAll('.plate, .draw').forEach(el => el.classList.add('on'))));
+}
+
+function route() {
+  const h = location.hash.replace(/^#\/?/, '');
+  const [view, arg] = h.split('/');
+  if (view === 'session') return session ? renderSession() : startSession();
+  if (view === 'theme' && themeById[arg]) return renderTheme(themeById[arg]);
+  if (view === 'reglages') return renderSettings();
+  return renderHome();
+}
+window.addEventListener('hashchange', route);
+
+/* ---------------------------------------------------------------- home */
+
+function stats() {
+  let learned = 0;
+  let learning = 0;
+  for (const w of WORDS) {
+    const c = S.cards[w.id];
+    if (isLearned(c)) learned++;
+    else if (!isNew(c)) learning++;
+  }
+  return { learned, learning, unseen: WORDS.length - learned - learning };
+}
+
+function todayPlan() {
+  const lt = S.log[today()];
+  const left = Math.max(0, S.settings.dailyNew - (lt ? lt.new : 0));
+  return planDay(WORDS, S.cards, {
+    dailyNew: left,
+    reviewCap: S.settings.reviewCap,
+    themes: S.settings.themes,
+    today: today(),
+  });
+}
+
+function last30() {
+  const out = [];
+  const k0 = today();
+  for (let i = 29; i >= 0; i--) {
+    const k = addDays(k0, -i);
+    const l = S.log[k];
+    out.push({ key: k, count: l ? l.right + l.wrong : 0, done: !!(l && l.done), today: i === 0 });
+  }
+  return out;
+}
+
+function renderHome() {
+  setView('home');
+  const plan = todayPlan();
+  const st = stats();
+  const sk = streak(S.log, today());
+  const nothing = plan.reviews.length + plan.fresh.length === 0;
+  const boxes = Array.from({ length: MAX_BOX + 1 }, (_, b) => WORDS.filter(w => (S.cards[w.id] ? S.cards[w.id].box : -1) === b).length);
+  const boxMax = Math.max(1, ...boxes);
+  const themeNames = S.settings.themes.length
+    ? S.settings.themes.map(id => themeById[id].fr).join(' · ')
+    : 'tous les thèmes, dans l’ordre';
+
+  app.innerHTML = `
+  <section class="hero">
+    <div class="copy">
+      <p class="eyebrow">Carnet de vocabulaire · TCF / TEF Canada</p>
+      <h1 class="big-heading">Un mot à la fois,<br><em class="accent">chaque jour.</em></h1>
+      <p class="lede">像当年背高考 3000 词一样：每天一张清单，新词带冠词和例句学，再用拼写、例句填空、组句、阴阳性和听写检查是不是真的记住了。复习按间隔重复排期，进度只保存在你自己的浏览器里。</p>
+
+      <div class="today card">
+        <p class="kicker">Aujourd’hui · ${new Date().toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        ${
+          nothing
+            ? `<p class="done-line"><span class="hand">Tout est fait&nbsp;!</span> 今天的清单完成了。</p>
+               <div class="actions">
+                 <button class="btn" data-act="more">再学 5 个新词</button>
+                 <a class="btn ghost" href="#/theme/${(THEMES.find(t => WORDS.some(w => w.theme === t.id && isNew(S.cards[w.id]))) || THEMES[0]).id}">浏览主题</a>
+               </div>`
+            : `<div class="nums">
+                 <div><span class="big">${plan.reviews.length}</span><span class="lab">à revoir<br><i>待复习</i></span></div>
+                 <div><span class="big">${plan.fresh.length}</span><span class="lab">nouveaux<br><i>新词</i></span></div>
+                 <div><span class="big">${sk}</span><span class="lab">jours de suite<br><i>连续天数</i></span></div>
+               </div>
+               <div class="actions">
+                 <a class="btn" href="#/session">Commencer la séance <span aria-hidden="true">→</span></a>
+                 <a class="btn ghost" href="#/reglages">每日数量与主题</a>
+               </div>
+               <p class="note">新词来自：${esc(themeNames)}。</p>`
+        }
+      </div>
+    </div>
+    <figure class="plate-wrap">
+      <div class="plate">${heroPlate()}</div>
+      <figcaption>Pl. I — le carnet <span>FRvc</span></figcaption>
+    </figure>
+  </section>
+
+  <section id="progres">
+    <h2 class="numbered-heading draw">Ma progression</h2>
+    <p class="chapter-lede">每个词在 0–7 号盒子之间移动：答对升一格，下次复习推迟到 1、2、4、7、15、30、60 天后；答错回到 1 号盒子，明天再见。到 5 号盒子算“掌握”。</p>
+    <div class="progress-grid">
+      <div class="engraved">
+        <div><span class="big">${st.learned}</span><span class="lab">acquis · 已掌握</span></div>
+        <div><span class="big">${st.learning}</span><span class="lab">en cours · 学习中</span></div>
+        <div><span class="big">${st.unseen}</span><span class="lab">à découvrir · 未学</span></div>
+      </div>
+      <figure class="month-wrap draw">
+        ${monthSketch(last30())}
+        <figcaption>Les 30 derniers jours — 斜线越密练得越多，打勾表示当天清单完成。</figcaption>
+      </figure>
+      <figure class="boxes draw" aria-label="Words per review box">
+        ${boxes
+          .map(
+            (n, b) => `<div class="box ${b >= LEARNED_BOX ? 'warm' : ''}">
+              <span class="bar" style="--h:${((n / boxMax) * 100).toFixed(1)}%"></span>
+              <span class="n">${n}</span><span class="b">${b}</span></div>`,
+          )
+          .join('')}
+        <figcaption>Boîtes de Leitner · 每个盒子里的词数</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="themes">
+    <h2 class="numbered-heading draw">Les thèmes</h2>
+    <p class="chapter-lede">按 TCF / TEF Canada 写作与口语最常出现的话题分组，最后一组是写观点作文必备的连接词。点开可以浏览、听发音，或只练这一个主题。</p>
+    <div class="theme-grid">
+      ${THEMES.map((t, i) => {
+        const ws = WORDS.filter(w => w.theme === t.id);
+        const l = ws.filter(w => isLearned(S.cards[w.id])).length;
+        const s = ws.filter(w => !isNew(S.cards[w.id])).length;
+        return `<a class="theme-card draw" href="#/theme/${t.id}" style="--d:${(i * 0.05).toFixed(2)}s">
+          <span class="num">${String(i + 1).padStart(2, '0')}</span>
+          ${themeIcon(t.icon)}
+          <span class="tname">${esc(t.fr)}</span>
+          <span class="tsub">${esc(t.zh)}</span>
+          <span class="meter"><span class="seen" style="width:${(s / ws.length) * 100}%"></span><span class="got" style="width:${(l / ws.length) * 100}%"></span></span>
+          <span class="tcount">${l} / ${ws.length} acquis</span>
+        </a>`;
+      }).join('')}
+    </div>
+  </section>
+
+  <section id="methode">
+    <h2 class="numbered-heading draw">La méthode</h2>
+    <ol class="method">
+      <li><span class="step">I</span><h3>Découvrir</h3><p>新词卡：带冠词的完整形式、词性、中英释义、原创例句和发音。</p><span class="hand">le, la, l’ — toujours&nbsp;!</span></li>
+      <li><span class="step">II</span><h3>Reconnaître</h3><p>四选一认词、判断阴阳性，先把词形和意思连起来。</p><span class="hand">un coup d’œil</span></li>
+      <li><span class="step">III</span><h3>Rappeler</h3><p>看中文拼写法语、例句填空、听写。重音写错会单独标出来，考试模式下算错。</p><span class="hand">é, è, ê…</span></li>
+      <li><span class="step">IV</span><h3>Réutiliser</h3><p>把打乱的例句重新排好，练的是“会用”，正好对应口语和写作任务。</p><span class="hand">en contexte</span></li>
+    </ol>
+  </section>`;
+  inkIn();
+  observeDraw();
+}
+
+/* Headings, theme cards and the month sketch ink themselves in when scrolled to. */
+function observeDraw() {
+  const els = app.querySelectorAll('.draw:not(.on)');
+  if (!('IntersectionObserver' in window)) return els.forEach(e => e.classList.add('on'));
+  const io = new IntersectionObserver(
+    entries =>
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('on');
+          io.unobserve(e.target);
+        }
+      }),
+    { threshold: 0.2 },
+  );
+  // inkIn() adds .on to everything; undo for below-the-fold items so they draw on scroll.
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() =>
+      els.forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (r.top > window.innerHeight) {
+          el.classList.remove('on');
+          io.observe(el);
+        }
+      }),
+    ),
+  );
+}
+
+/* ---------------------------------------------------------------- theme page */
+
+function renderTheme(t) {
+  setView('theme');
+  const ws = WORDS.filter(w => w.theme === t.id);
+  const idx = THEMES.indexOf(t);
+  app.innerHTML = `
+  <section class="theme-page">
+    <a class="back" href="#/">← Retour</a>
+    <header class="theme-head">
+      <div class="ticon-lg draw">${themeIcon(t.icon)}</div>
+      <div>
+        <p class="eyebrow">Thème ${String(idx + 1).padStart(2, '0')} · ${ws.length} mots</p>
+        <h1 class="medium-heading">${esc(t.fr)}</h1>
+        <p class="sub">${esc(t.zh)} · ${esc(t.en)}</p>
+      </div>
+      <div class="actions">
+        <button class="btn" data-act="study-theme" data-theme="${t.id}">只练这个主题</button>
+      </div>
+    </header>
+    <ol class="wordlist">
+      ${ws
+        .map(w => {
+          const c = S.cards[w.id];
+          const box = c ? c.box : -1;
+          return `<li>
+            <button class="say" data-say="${esc(w.fr)}" aria-label="Écouter ${esc(w.fr)}">${speakerIcon()}</button>
+            <div class="w">
+              <span class="fr">${esc(w.fr)}</span><span class="kind">${KIND[w.kind][0]}</span>
+              <span class="mean">${esc(w.zh)} <i>${esc(w.en)}</i></span>
+              <details><summary>例句</summary><p class="ex">${highlight(w.ex)}</p><p class="tr">${esc(w.tr)}</p></details>
+            </div>
+            <span class="pips" title="${box < 0 ? '未学' : `第 ${box} 号盒子`}">${Array.from({ length: MAX_BOX }, (_, i) => `<i class="${i < box ? (i + 1 >= LEARNED_BOX ? 'w' : 'f') : ''}"></i>`).join('')}</span>
+          </li>`;
+        })
+        .join('')}
+    </ol>
+  </section>`;
+  inkIn();
+}
+
+const highlight = ex => {
+  const p = clozeParts(ex);
+  return p ? `${esc(p.before)}<mark>${esc(p.answer)}</mark>${esc(p.after)}` : esc(ex);
+};
+
+/* ---------------------------------------------------------------- settings */
+
+function renderSettings() {
+  setView('settings');
+  const s = S.settings;
+  const ex = [
+    ['recall', '看释义拼写'],
+    ['cloze', '例句填空'],
+    ['build', '组句'],
+    ['choice', '四选一'],
+    ['gender', '阴阳性'],
+    ['dictation', '听写'],
+  ];
+  app.innerHTML = `
+  <section class="settings">
+    <a class="back" href="#/">← Retour</a>
+    <h1 class="medium-heading">Réglages</h1>
+    <form class="card form" id="settings">
+      <label class="row"><span>每天新词</span>
+        <select name="dailyNew">${[5, 10, 15, 20, 30, 40].map(n => `<option ${n === s.dailyNew ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label class="row"><span>每天最多复习</span>
+        <select name="reviewCap">${[40, 80, 120, 200].map(n => `<option ${n === s.reviewCap ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label class="row"><span>释义语言</span>
+        <select name="prompt"><option value="zh" ${s.prompt === 'zh' ? 'selected' : ''}>中文</option><option value="en" ${s.prompt === 'en' ? 'selected' : ''}>English</option></select></label>
+      <label class="row check"><input type="checkbox" name="strictAccents" ${s.strictAccents ? 'checked' : ''}><span>考试模式：重音写错算错</span></label>
+      <label class="row check"><input type="checkbox" name="autoSpeak" ${s.autoSpeak ? 'checked' : ''}><span>自动朗读法语</span></label>
+      <fieldset><legend>练习题型</legend>
+        ${ex.map(([k, l]) => `<label class="chip"><input type="checkbox" name="ex" value="${k}" ${s.exercises.includes(k) ? 'checked' : ''}><span>${l}</span></label>`).join('')}
+      </fieldset>
+      <fieldset><legend>新词来自哪些主题（都不选 = 全部，按顺序）</legend>
+        ${THEMES.map(t => `<label class="chip"><input type="checkbox" name="themes" value="${t.id}" ${s.themes.includes(t.id) ? 'checked' : ''}><span>${esc(t.fr)}</span></label>`).join('')}
+      </fieldset>
+      <div class="actions"><button class="btn" type="submit">Enregistrer</button><span class="saved hand" hidden>enregistré&nbsp;✓</span></div>
+    </form>
+    <div class="card form">
+      <p class="kicker">Données · 数据</p>
+      <p>进度只保存在这台设备的浏览器里。换设备时先导出，再在另一台设备导入。${hasFrenchVoice() ? '' : '<br><b>提示：</b>这个浏览器没有找到法语语音，听写题会自动跳过。'}</p>
+      <div class="actions">
+        <button class="btn ghost" data-act="export">导出进度</button>
+        <label class="btn ghost file">导入进度<input type="file" accept="application/json" data-act="import" hidden></label>
+        <button class="btn ghost danger" data-act="reset">清空所有进度</button>
+      </div>
+    </div>
+  </section>`;
+  document.getElementById('settings').addEventListener('submit', e => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    S.settings = {
+      ...S.settings,
+      dailyNew: Number(f.get('dailyNew')),
+      reviewCap: Number(f.get('reviewCap')),
+      prompt: f.get('prompt'),
+      strictAccents: f.get('strictAccents') === 'on',
+      autoSpeak: f.get('autoSpeak') === 'on',
+      exercises: f.getAll('ex').length ? f.getAll('ex') : ['recall'],
+      themes: f.getAll('themes'),
+    };
+    persist();
+    const ok = e.target.querySelector('.saved');
+    ok.hidden = false;
+    setTimeout(() => (ok.hidden = true), 1800);
+  });
+}
+
+/* ---------------------------------------------------------------- session */
+
+let session = null;
+
+const can = t => S.settings.exercises.includes(t) && (t !== 'dictation' || hasFrenchVoice());
+
+function reviewType(w, box) {
+  const noun = isNoun(w.kind);
+  const early = ['choice', 'choiceRev', 'cloze'].concat(noun ? ['gender'] : []);
+  const late = ['recall', 'cloze', 'build', 'dictation', 'recall'].concat(noun ? ['gender'] : []);
+  const pool = (box <= 2 ? early : late).filter(t => can(t === 'choiceRev' ? 'choice' : t));
+  return pool.length ? pickOne(pool) : 'recall';
+}
+
+function buildQueue(fresh, reviews) {
+  const q = [];
+  const rq = reviews.map(w => ({ w, type: reviewType(w, S.cards[w.id].box), graded: true }));
+  const chunks = [];
+  for (let i = 0; i < fresh.length; i += 5) chunks.push(fresh.slice(i, i + 5));
+  const per = chunks.length ? Math.ceil(rq.length / (chunks.length + 1)) : rq.length;
+  q.push(...rq.splice(0, per));
+  for (const ch of chunks) {
+    ch.forEach(w => q.push({ w, type: 'intro' }));
+    shuffle(ch).forEach(w => q.push({ w, type: can('choice') ? 'choice' : can('gender') && isNoun(w.kind) ? 'gender' : 'intro2' }));
+    q.push(...rq.splice(0, per));
+    shuffle(ch).forEach(w => q.push({ w, type: can('recall') ? 'recall' : can('cloze') ? 'cloze' : 'choiceRev', graded: true, fresh: true }));
+  }
+  q.push(...rq);
+  return q.filter(it => it.type !== 'intro2');
+}
+
+function startSession(override) {
+  const plan = override || todayPlan();
+  const q = buildQueue(plan.fresh, plan.reviews);
+  if (!q.length) {
+    location.hash = '#/';
+    return;
+  }
+  session = { q, i: 0, right: 0, wrong: 0, missed: new Set(), state: 'ask', freshCount: plan.fresh.length, introduced: new Set(), tries: {} };
+  renderSession();
+}
+
+function current() {
+  return session.q[session.i];
+}
+
+function renderSession() {
+  setView('session');
+  if (session.i >= session.q.length) return renderSummary();
+  const it = current();
+  const w = it.w;
+  const t = themeById[w.theme];
+  const total = session.q.length;
+  const pct = (session.i / total) * 100;
+  app.innerHTML = `
+  <section class="session">
+    <div class="topline">
+      <a class="quit" href="#/" aria-label="Quitter la séance">× <span>quitter</span></a>
+      <div class="track"><span style="width:${pct}%"></span></div>
+      <span class="count">${session.i + 1}<i>/</i>${total}</span>
+    </div>
+    <article class="sheet card ${it.type}">
+      <p class="kicker">${labelFor(it)} · ${esc(t.fr)}</p>
+      <div class="ask">${askHtml(it)}</div>
+      <div class="feedback" aria-live="polite"></div>
+    </article>
+    ${needsKeys(it.type) ? accentKeys() : ''}
+    <p class="keys-hint">Entrée = valider / continuer${['choice', 'choiceRev'].includes(it.type) ? ' · 1–4 = choisir' : ''}${it.type === 'gender' ? ' · M / F' : ''}</p>
+  </section>`;
+  const input = app.querySelector('input.answer');
+  if (input) input.focus();
+  if (S.settings.autoSpeak && ['intro', 'choice', 'dictation'].includes(it.type)) speak(it.type === 'dictation' ? w.fr : w.fr);
+  if (it.type === 'build') bindBuild();
+}
+
+const needsKeys = t => ['recall', 'cloze', 'dictation'].includes(t);
+
+function labelFor(it) {
+  return {
+    intro: 'Nouveau mot · 新词',
+    choice: 'Reconnaître · 认词',
+    choiceRev: 'Reconnaître · 选出法语',
+    recall: 'Rappeler · 拼写',
+    cloze: 'En contexte · 例句填空',
+    build: 'Réutiliser · 组句',
+    gender: 'Le ou la ? · 阴阳性',
+    dictation: 'Dictée · 听写',
+  }[it.type];
+}
+
+function sayBtn(text, label = 'Écouter') {
+  return `<button class="say" type="button" data-say="${esc(text)}" aria-label="${label}">${speakerIcon()}</button>`;
+}
+
+function distractors(w, n, field) {
+  const same = WORDS.filter(x => x.theme === w.theme && x.id !== w.id && x.kind === w.kind);
+  const other = WORDS.filter(x => x.id !== w.id && x.kind === w.kind && x.theme !== w.theme);
+  const pool = shuffle(same).concat(shuffle(other));
+  const seen = new Set([w[field]]);
+  const out = [];
+  for (const x of pool) {
+    if (!seen.has(x[field])) {
+      seen.add(x[field]);
+      out.push(x);
+    }
+    if (out.length === n) break;
+  }
+  return out;
+}
+
+function askHtml(it) {
+  const w = it.w;
+  const k = KIND[w.kind];
+  switch (it.type) {
+    case 'intro':
+      return `
+        <div class="word"><span class="fr">${esc(w.fr)}</span>${sayBtn(w.fr)}</div>
+        <p class="kind-line"><span class="kind">${k[0]}</span> ${k[1]}</p>
+        <p class="mean-big">${esc(meaning(w))}</p>
+        <p class="mean-alt">${esc(meaningAlt(w))}</p>
+        <div class="example"><p class="ex">${highlight(w.ex)} ${sayBtn(plainSentence(w.ex), 'Écouter la phrase')}</p><p class="tr">${esc(w.tr)}</p></div>
+        <div class="actions"><button class="btn" data-act="next">Je l’ai vu <span aria-hidden="true">→</span></button></div>
+        <span class="hand margin">à retenir</span>`;
+    case 'choice': {
+      const opts = shuffle([w, ...distractors(w, 3, 'zh')]);
+      it.opts = opts.map(o => o.id);
+      return `
+        <div class="word"><span class="fr">${esc(w.fr)}</span>${sayBtn(w.fr)}</div>
+        <p class="q">这个词的意思是？</p>
+        <div class="options">${opts.map((o, i) => `<button class="opt" data-pick="${o.id}"><b>${i + 1}</b>${esc(meaning(o))}</button>`).join('')}</div>`;
+    }
+    case 'choiceRev': {
+      const opts = shuffle([w, ...distractors(w, 3, 'fr')]);
+      it.opts = opts.map(o => o.id);
+      return `
+        <p class="mean-big">${esc(meaning(w))}</p>
+        <p class="q">选出对应的法语：</p>
+        <div class="options fr-opts">${opts.map((o, i) => `<button class="opt" data-pick="${o.id}"><b>${i + 1}</b>${esc(o.fr)}</button>`).join('')}</div>`;
+    }
+    case 'recall':
+      return `
+        <p class="mean-big">${esc(meaning(w))}</p>
+        <p class="kind-line"><span class="kind">${isNoun(w.kind) ? 'n.' : k[0]}</span> ${isNoun(w.kind) ? '名词 — 连冠词一起写（le / la / l’ / les / un / une）' : k[1]}</p>
+        ${answerForm('Écrivez en français…')}`;
+    case 'cloze': {
+      const p = clozeParts(w.ex);
+      return `
+        <p class="ex cloze-line">${esc(p.before)}<span class="blank">${'_'.repeat(Math.max(4, Math.min(14, p.answer.length)))}</span>${esc(p.after)}</p>
+        <p class="tr">${esc(w.tr)}</p>
+        <p class="kind-line"><span class="kind">${k[0]}</span> ${esc(meaning(w))} <button class="link" type="button" data-act="hint">提示首字母</button></p>
+        ${answerForm('Le mot manquant…')}`;
+    }
+    case 'build': {
+      const toks = sentenceTokens(w.ex);
+      let order = shuffle(toks.map((_, i) => i));
+      if (toks.length > 1 && order.every((v, i) => v === i)) order = order.reverse();
+      it.toks = toks;
+      it.placed = [];
+      return `
+        <p class="mean-big small">${esc(w.tr)}</p>
+        <p class="q">把下面的词排成正确的法语句子（点击放入，点已放入的词可拿回）。</p>
+        <div class="slots" aria-label="Votre phrase"></div>
+        <div class="tokens">${order.map(i => `<button class="tok" data-tok="${i}">${esc(toks[i])}</button>`).join('')}</div>
+        <div class="actions"><button class="btn" data-act="check-build">Valider</button><button class="link" data-act="skip">je ne sais pas</button></div>`;
+    }
+    case 'gender':
+      return `
+        <div class="word"><span class="fr">${esc(bareNoun(w.fr))}</span>${sayBtn(bareNoun(w.fr))}</div>
+        <p class="mean-alt">${esc(meaning(w))}</p>
+        <div class="options two">
+          <button class="opt" data-gender="m"><b>M</b>masculin · le / un</button>
+          <button class="opt" data-gender="f"><b>F</b>féminin · la / une</button>
+        </div>`;
+    case 'dictation':
+      return `
+        <div class="listen">
+          <button class="say big-say" type="button" data-say="${esc(w.fr)}" aria-label="Écouter">${speakerIcon()}</button>
+          <button class="link" type="button" data-say-slow="${esc(w.fr)}">plus lentement</button>
+        </div>
+        <p class="q">听写：写下你听到的法语（名词带冠词）。</p>
+        ${answerForm('Ce que vous entendez…')}`;
+    default:
+      return '';
+  }
+}
+
+function answerForm(ph) {
+  return `<form class="answer-form" autocomplete="off">
+    <input class="answer" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" lang="fr" placeholder="${ph}" aria-label="Votre réponse">
+    <button class="btn" type="submit">Valider</button>
+    <button class="link" type="button" data-act="skip">je ne sais pas</button>
+  </form>`;
+}
+
+function accentKeys() {
+  return `<div class="accents" aria-label="Lettres accentuées">${['é', 'è', 'ê', 'à', 'â', 'ç', 'ô', 'î', 'û', 'ù', 'ë', 'ï', 'œ', '’']
+    .map(c => `<button type="button" data-key="${c}">${c}</button>`)
+    .join('')}</div>`;
+}
+
+function expectedFor(it) {
+  if (it.type === 'cloze') return clozeParts(it.w.ex).answer;
+  return it.w.fr;
+}
+
+const VERDICT = {
+  exact: ['Parfait.', '完全正确'],
+  accent: ['Presque.', '对了，注意重音'],
+  accentStrict: ['Les accents comptent.', '字母对了，但重音符号写错了'],
+  article: ['Et l’article ?', '名词要连冠词一起记'],
+  gender: ['Mauvais genre.', '阴阳性错了'],
+  typo: ['À une lettre près.', '差一个字母'],
+  wrong: ['Pas encore.', '再看一眼'],
+  skip: ['On le revoit bientôt.', '没关系，等会儿再考一次'],
+  right: ['Exact.', '答对了'],
+};
+
+function submit(typed, { skipped = false, ok: forced = null } = {}) {
+  if (session.state !== 'ask') return;
+  const it = current();
+  const w = it.w;
+  let res;
+  if (forced !== null) res = { ok: forced, verdict: forced ? 'right' : 'wrong' };
+  else if (skipped) res = { ok: false, verdict: 'skip' };
+  else res = checkAnswer(typed, expectedFor(it), { kind: it.type === 'cloze' ? '' : w.kind, strictAccents: S.settings.strictAccents });
+  const vkey = res.verdict === 'accent' && !res.ok ? 'accentStrict' : res.verdict;
+  session.state = 'shown';
+
+  // Grade: only marked items move the schedule; learning steps just requeue on a miss.
+  let prev = null;
+  if (it.graded && !it.retry) {
+    prev = S.cards[w.id] ? { ...S.cards[w.id] } : null;
+    S.cards[w.id] = grade(S.cards[w.id], res.ok, today());
+    const lt = logToday();
+    if (it.fresh && !session.introduced.has(w.id)) {
+      session.introduced.add(w.id);
+      lt.new += 1;
+    }
+    if (res.ok) lt.right += 1;
+    else lt.wrong += 1;
+    persist();
+  }
+  if (res.ok) session.right += 1;
+  else {
+    session.wrong += 1;
+    session.missed.add(w.id);
+    requeue(it);
+  }
+  it.prev = prev;
+  it.res = res;
+  showFeedback(it, typed, vkey);
+}
+
+function requeue(it) {
+  // Ask a missed word again a few cards later — at most twice per session, so a hard
+  // word cannot hold the session hostage. It comes back tomorrow either way.
+  session.tries[it.w.id] = (session.tries[it.w.id] || 0) + 1;
+  if (session.tries[it.w.id] > 2) return;
+  const again = { w: it.w, type: can('recall') ? 'recall' : 'choiceRev', graded: it.graded, retry: true, fresh: it.fresh };
+  const pos = Math.min(session.q.length, session.i + 4);
+  session.q.splice(pos, 0, again);
+}
+
+function showFeedback(it, typed, vkey) {
+  const w = it.w;
+  const fb = app.querySelector('.feedback');
+  const sheet = app.querySelector('.sheet');
+  const ok = it.res.ok;
+  sheet.classList.add(ok ? 'is-right' : 'is-wrong');
+  app.querySelectorAll('.answer-form input, .answer-form button, .opt, .tok, [data-act="check-build"]').forEach(b => (b.disabled = true));
+  const [fr, zh] = VERDICT[vkey] || VERDICT.wrong;
+  const exp = expectedFor(it);
+  const showDiff = typed && !ok && ['recall', 'cloze', 'dictation'].includes(it.type);
+  const diff = showDiff
+    ? `<p class="diff">${diffMarks(typed, exp)
+        .map(m => (m.s === 'same' ? esc(m.ch) : `<b class="${m.s}">${esc(m.ch)}</b>`))
+        .join('')}</p>`
+    : '';
+  const canOverride = it.graded && !it.retry && !ok && ['recall', 'cloze', 'dictation', 'build'].includes(it.type) && typed;
+  fb.innerHTML = `
+    <div class="verdict">${ok ? tickMark() : crossMark()}<div><p class="v-fr">${fr}</p><p class="v-zh">${zh}</p></div></div>
+    <div class="reveal">
+      <p class="answer-line"><span class="fr">${esc(w.fr)}</span> ${sayBtn(w.fr)} <span class="kind">${KIND[w.kind][0]}</span> <span class="mean">${esc(w.zh)} · <i>${esc(w.en)}</i></span></p>
+      ${diff}
+      <p class="ex">${highlight(w.ex)} ${sayBtn(plainSentence(w.ex), 'Écouter la phrase')}</p>
+    </div>
+    <div class="actions">
+      <button class="btn" data-act="next">Continuer <span aria-hidden="true">→</span></button>
+      ${canOverride ? '<button class="link" data-act="override">我其实答对了（算对）</button>' : ''}
+    </div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => fb.classList.add('on')));
+  fb.querySelector('[data-act="next"]').focus({ preventScroll: true });
+  if (it.type !== 'intro' && S.settings.autoSpeak && (!ok || it.type === 'cloze' || it.type === 'build')) speak(it.type === 'build' ? plainSentence(w.ex) : w.fr);
+}
+
+function override() {
+  const it = current();
+  if (!it.res || it.res.ok) return;
+  S.cards[it.w.id] = grade(it.prev, true, today());
+  const lt = logToday();
+  lt.wrong = Math.max(0, lt.wrong - 1);
+  lt.right += 1;
+  persist();
+  session.wrong -= 1;
+  session.right += 1;
+  session.missed.delete(it.w.id);
+  // remove the retry we queued
+  const j = session.q.findIndex((x, k) => k > session.i && x.retry && x.w.id === it.w.id);
+  if (j > -1) session.q.splice(j, 1);
+  next();
+}
+
+function next() {
+  session.i += 1;
+  session.state = 'ask';
+  renderSession();
+}
+
+function renderSummary() {
+  setView('session');
+  const lt = logToday();
+  lt.done = true;
+  persist();
+  const missed = [...session.missed].map(id => byId[id]);
+  const total = session.right + session.wrong;
+  const acc = total ? Math.round((session.right / total) * 100) : 100;
+  app.innerHTML = `
+  <section class="summary">
+    <article class="sheet card">
+      <p class="kicker">Séance terminée · ${new Date().toLocaleDateString('fr-CA')}</p>
+      <h1 class="medium-heading">Bien joué<em class="accent">.</em></h1>
+      <div class="nums">
+        <div><span class="big">${session.freshCount}</span><span class="lab">nouveaux<br><i>新词</i></span></div>
+        <div><span class="big">${session.right}</span><span class="lab">réponses justes<br><i>答对</i></span></div>
+        <div><span class="big">${acc}<small>%</small></span><span class="lab">précision<br><i>正确率</i></span></div>
+      </div>
+      ${
+        missed.length
+          ? `<p class="kicker">À revoir demain · 明天会再考</p>
+             <ul class="missed">${missed.map(w => `<li><span class="fr">${esc(w.fr)}</span> ${sayBtn(w.fr)} <span class="mean">${esc(w.zh)}</span></li>`).join('')}</ul>`
+          : '<p class="note">一个都没错。</p>'
+      }
+      <figure class="month-wrap draw">${monthSketch(last30())}</figure>
+      <p class="hand sign">à demain&nbsp;!</p>
+      <div class="actions"><a class="btn" href="#/">Retour au carnet</a><button class="btn ghost" data-act="more">再学 5 个新词</button></div>
+    </article>
+  </section>`;
+  session = null;
+  inkIn();
+}
+
+/* ---------------------------------------------------------------- build exercise */
+
+function bindBuild() {
+  const it = current();
+  const slots = app.querySelector('.slots');
+  const toks = app.querySelector('.tokens');
+  const draw = () => {
+    slots.innerHTML = it.placed.map((i, k) => `<button class="tok placed" data-unplace="${k}">${esc(it.toks[i])}</button>`).join('');
+    toks.querySelectorAll('.tok').forEach(b => (b.hidden = it.placed.includes(Number(b.dataset.tok))));
+  };
+  it.redraw = draw;
+  draw();
+}
+
+function checkBuild() {
+  const it = current();
+  if (session.state !== 'ask') return;
+  if (!it.placed.length) return;
+  const typed = it.placed.map(i => it.toks[i]).join(' ');
+  const target = it.toks.join(' ');
+  // Words that repeat can swap places without changing the sentence: compare text, not indices.
+  const ok = typed === target;
+  submit(typed, { ok });
+}
+
+/* ---------------------------------------------------------------- events */
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, [data-act], label.file');
+  if (!t) return;
+  if (t.dataset.say) return void speak(t.dataset.say);
+  if (t.dataset.saySlow) return void speak(t.dataset.saySlow, { rate: 0.6 });
+  if (t.dataset.key) {
+    const inp = app.querySelector('input.answer');
+    if (!inp || inp.disabled) return;
+    const s = inp.selectionStart ?? inp.value.length;
+    const c = t.dataset.key === '’' ? "'" : t.dataset.key;
+    inp.value = inp.value.slice(0, s) + c + inp.value.slice(inp.selectionEnd ?? s);
+    inp.focus();
+    inp.setSelectionRange(s + 1, s + 1);
+    return;
+  }
+  if (t.dataset.pick && session && session.state === 'ask') {
+    const it = current();
+    const ok = t.dataset.pick === it.w.id;
+    t.classList.add(ok ? 'right' : 'wrong');
+    if (!ok) app.querySelector(`[data-pick="${it.w.id}"]`).classList.add('right');
+    return submit('', { ok });
+  }
+  if (t.dataset.gender && session && session.state === 'ask') {
+    const it = current();
+    const g = it.w.kind.startsWith('f') ? 'f' : 'm';
+    const ok = t.dataset.gender === g;
+    t.classList.add(ok ? 'right' : 'wrong');
+    if (!ok) app.querySelector(`[data-gender="${g}"]`).classList.add('right');
+    return submit('', { ok });
+  }
+  if (t.dataset.tok !== undefined && session && session.state === 'ask') {
+    const it = current();
+    it.placed.push(Number(t.dataset.tok));
+    return it.redraw();
+  }
+  if (t.dataset.unplace !== undefined && session && session.state === 'ask') {
+    const it = current();
+    it.placed.splice(Number(t.dataset.unplace), 1);
+    return it.redraw();
+  }
+  switch (t.dataset.act) {
+    case 'next':
+      return next();
+    case 'skip':
+      return submit('', { skipped: true });
+    case 'override':
+      return override();
+    case 'check-build':
+      return checkBuild();
+    case 'hint': {
+      const inp = app.querySelector('input.answer');
+      const a = expectedFor(current());
+      inp.placeholder = `${a[0]}${'·'.repeat(Math.max(0, a.length - 1))}`;
+      inp.focus();
+      return;
+    }
+    case 'more': {
+      const pool = S.settings.themes.length ? WORDS.filter(w => S.settings.themes.includes(w.theme)) : WORDS;
+      const fresh = pool.filter(w => isNew(S.cards[w.id])).slice(0, 5);
+      startSession({ fresh, reviews: [] });
+      if (session && location.hash !== '#/session') history.replaceState(null, '', '#/session');
+      return;
+    }
+    case 'study-theme': {
+      const id = t.dataset.theme;
+      const fresh = WORDS.filter(w => w.theme === id && isNew(S.cards[w.id])).slice(0, Math.max(5, S.settings.dailyNew));
+      const reviews = WORDS.filter(w => w.theme === id && !isNew(S.cards[w.id])).slice(0, 30);
+      startSession({ fresh, reviews });
+      if (session && location.hash !== '#/session') history.replaceState(null, '', '#/session');
+      return;
+    }
+    case 'export':
+      return store.exportFile(S);
+    case 'reset':
+      if (confirm('清空全部学习进度？此操作无法撤销。')) {
+        S = store.reset();
+        persist();
+        renderSettings();
+      }
+      return;
+    default:
+  }
+});
+
+document.addEventListener('change', async e => {
+  if (e.target.dataset && e.target.dataset.act === 'import' && e.target.files[0]) {
+    try {
+      S = await store.importFile(e.target.files[0]);
+      persist();
+      alert('进度已导入。');
+      location.hash = '#/';
+    } catch (err) {
+      alert(`导入失败：${err.message}`);
+    }
+  }
+});
+
+document.addEventListener('submit', e => {
+  if (!e.target.classList.contains('answer-form')) return;
+  e.preventDefault();
+  const v = e.target.querySelector('input').value;
+  if (!v.trim()) return;
+  submit(v);
+});
+
+document.addEventListener('keydown', e => {
+  if (!session || document.body.dataset.view !== 'session') return;
+  const inInput = e.target.matches && e.target.matches('input, select, textarea');
+  if (e.key === 'Enter' && session.state === 'shown') {
+    e.preventDefault();
+    return next();
+  }
+  if (e.key === 'Enter' && current() && current().type === 'intro' && !inInput) {
+    e.preventDefault();
+    return next();
+  }
+  if (e.key === 'Enter' && current() && current().type === 'build' && !inInput) {
+    e.preventDefault();
+    return checkBuild();
+  }
+  if (inInput || session.state !== 'ask') return;
+  const it = current();
+  if (['choice', 'choiceRev'].includes(it.type) && /^[1-4]$/.test(e.key)) {
+    const b = app.querySelectorAll('.opt')[Number(e.key) - 1];
+    if (b) b.click();
+  }
+  if (it.type === 'gender' && /^[mfMF]$/.test(e.key)) {
+    const b = app.querySelector(`[data-gender="${e.key.toLowerCase()}"]`);
+    if (b) b.click();
+  }
+  if (it.type === 'build' && e.key === 'Backspace' && it.placed.length) {
+    it.placed.pop();
+    it.redraw();
+  }
+});
+
+/* ---------------------------------------------------------------- boot */
+
+// Read-only hook for the browser tests (only with ?test in the URL).
+if (/[?&]test\b/.test(location.search)) {
+  window.__frvc = { current: () => session && current() && { type: current().type, expected: expectedFor(current()), w: current().w, toks: current().toks } };
+}
+
+initSpeech();
+route();
+startBirds();
