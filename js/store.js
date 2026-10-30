@@ -15,13 +15,44 @@ export const DEFAULT_SETTINGS = {
   exercises: ['recall', 'cloze', 'build', 'choice', 'gender', 'dictation', 'translate'],
 };
 
-const VERSION = 2;
-const empty = () => ({ version: VERSION, cards: {}, log: {}, marked: {}, starred: {}, settings: { ...DEFAULT_SETTINGS } });
+const VERSION = 3;
+const empty = () => ({ version: VERSION, cards: {}, devlog: {}, log: {}, marked: {}, starred: {}, settings: { ...DEFAULT_SETTINGS }, settingsT: 0, resetAt: 0 });
 
-/* v1 → v2: the whole-sentence translation exercise is new; switch it on for existing users. */
+/* Each browser / installed app gets its own id, so daily counts can be kept per device. */
+export function deviceId() {
+  try {
+    let id = localStorage.getItem('frvc:device');
+    if (!id) {
+      id = Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('frvc:device', id);
+    }
+    return id;
+  } catch (e) {
+    return 'local';
+  }
+}
+
+const noon = d => (d ? Date.parse(`${d}T12:00:00`) || 0 : 0);
+
 function migrate(data) {
-  if ((data.version || 1) < 2 && data.settings && Array.isArray(data.settings.exercises) && !data.settings.exercises.includes('translate')) {
+  const v = data.version || 1;
+  // v1 → v2: the whole-sentence translation exercise is new; switch it on.
+  if (v < 2 && data.settings && Array.isArray(data.settings.exercises) && !data.settings.exercises.includes('translate')) {
     data.settings.exercises = [...data.settings.exercises, 'translate'];
+  }
+  // v2 → v3: timestamps on everything and per-device daily counts, for multi-device sync.
+  if (v < 3) {
+    const dev = deviceId();
+    data.devlog = data.devlog || {};
+    for (const [day, e] of Object.entries(data.log || {})) {
+      data.devlog[day] = { [dev]: { new: 0, right: 0, wrong: 0, done: false, ...e, t: noon(day) } };
+    }
+    for (const c of Object.values(data.cards || {})) c.t = c.t || noon(c.last);
+    for (const [k, m] of Object.entries(data.marked || {})) data.marked[k] = { ...m, t: m.t || noon(m.at) };
+    for (const [k, st] of Object.entries(data.starred || {}))
+      data.starred[k] = typeof st === 'string' ? { at: st, t: noon(st) } : { ...st, t: st.t || noon(st.at) };
+    // Settings someone already chose beat the defaults of a device that has just been set up.
+    data.settingsT = data.settingsT || (data.settings ? 1 : 0);
   }
   data.version = VERSION;
   return data;
@@ -69,11 +100,5 @@ export async function importFile(file) {
   return { ...empty(), ...data, settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) } };
 }
 
-export const reset = () => {
-  try {
-    localStorage.removeItem(KEY);
-  } catch (e) {
-    /* ignore */
-  }
-  return empty();
-};
+/* Clear progress. resetAt travels with sync, so older progress is cleared on every device. */
+export const reset = () => ({ ...empty(), resetAt: Date.now() });

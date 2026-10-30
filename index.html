@@ -2,11 +2,17 @@
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>FRvc · Carnet de vocabulaire</title>
     <meta name="description" content="A daily French vocabulary notebook for the TCF and TEF Canada: spaced repetition, spelling, fill-in-the-blank, sentence building, gender and dictation." />
     <meta name="theme-color" content="#f6f1e6" />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FRvc" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="preload" href="fonts/cormorant-garamond-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="css/style.css" />
@@ -25,6 +31,7 @@
           <li><a href="#/reglages">Réglages</a></li>
         </ol>
       </nav>
+      <span id="syncstate" class="syncstate" hidden></span>
       <a class="home-link" href="https://ellensyuu.github.io/">Ziyi Zhou <span aria-hidden="true">↗</span></a>
     </header>
 

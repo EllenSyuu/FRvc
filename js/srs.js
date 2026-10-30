@@ -32,7 +32,7 @@ export const daysBetween = (a, b) => {
 export const fresh = () => ({ box: 0, due: null, right: 0, wrong: 0, last: null });
 
 /* Grade one answer. Returns a new card state. */
-export function grade(card, ok, today = dayKey()) {
+export function grade(card, ok, today = dayKey(), now = Date.now()) {
   const c = { ...fresh(), ...card };
   if (ok) {
     c.box = Math.min(MAX_BOX, c.box + 1);
@@ -43,6 +43,7 @@ export function grade(card, ok, today = dayKey()) {
   }
   c.due = addDays(today, INTERVALS[c.box]);
   c.last = today;
+  c.t = now; // for merging progress across devices
   return c;
 }
 

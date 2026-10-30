@@ -22,8 +22,9 @@ const keyOf = el => (el.dataset.k || '').replace(/’/g, "'");
 export const shortZh = zh => zh.split(/[（(；]/)[0].trim();
 
 const S = () => ctx.state();
-export const isMarked = key => !!(S().marked && S().marked[key]);
-export const isStarred = id => !!(S().starred && S().starred[id]);
+const live = (obj, k) => !!(obj && obj[k] && !obj[k].del);
+export const isMarked = key => live(S().marked, key);
+export const isStarred = id => live(S().starred, id);
 
 function tokenHtml(tokens, wid) {
   return tokens
@@ -147,14 +148,14 @@ function toggleFor(el) {
   const st = S();
   st.marked = st.marked || {};
   st.starred = st.starred || {};
+  // Un-marking leaves a dated tombstone so another device's copy does not bring it back.
+  const now = Date.now();
   if (el.dataset.target) {
     const id = el.dataset.target;
-    if (st.starred[id]) delete st.starred[id];
-    else st.starred[id] = ctx.today();
+    st.starred[id] = isStarred(id) ? { del: true, t: now } : { at: ctx.today(), t: now };
   } else {
     const key = keyOf(el);
-    if (st.marked[key]) delete st.marked[key];
-    else st.marked[key] = { from: el.dataset.w, at: ctx.today() };
+    st.marked[key] = isMarked(key) ? { del: true, t: now } : { from: el.dataset.w, at: ctx.today(), t: now };
   }
   ctx.persist();
   refresh();
@@ -165,8 +166,7 @@ function toggleFor(el) {
 export function toggleStar(id) {
   const st = S();
   st.starred = st.starred || {};
-  if (st.starred[id]) delete st.starred[id];
-  else st.starred[id] = ctx.today();
+  st.starred[id] = isStarred(id) ? { del: true, t: Date.now() } : { at: ctx.today(), t: Date.now() };
   ctx.persist();
   refresh();
 }

@@ -6,6 +6,9 @@ import { initSpeech, speak, hasFrenchVoice } from './speech.js';
 import { heroPlate, themeIcon, tickMark, crossMark, speakerIcon, monthSketch, startBirds } from './art.js';
 import { GLOSS, tokenize } from '../data/glossary.js';
 import { initGloss, sentenceHtml, starButton, refresh as refreshGloss, shortZh, hide as hidePop } from './gloss.js';
+import { aggregateLog, liveKeys } from './merge.js';
+import * as sync from './sync.js';
+import { initPwa, installState, promptInstall } from './pwa.js';
 
 /* ---------------------------------------------------------------- state */
 
@@ -13,7 +16,13 @@ let S = store.load();
 const byId = Object.fromEntries(WORDS.map(w => [w.id, w]));
 const themeById = Object.fromEntries(THEMES.map(t => [t.id, t]));
 const app = document.getElementById('app');
-const persist = () => store.save(S);
+const DEV = store.deviceId();
+// Every change is saved locally at once and synced to the other devices a few seconds later.
+const persist = () => {
+  S.log = aggregateLog(S.devlog);
+  store.save(S);
+  sync.schedule();
+};
 
 // Shown with the typographic apostrophe (l’emploi); the checker accepts either one.
 const esc = s =>
@@ -43,10 +52,13 @@ const meaning = w => (S.settings.prompt === 'en' ? w.en : w.zh);
 const meaningAlt = w => (S.settings.prompt === 'en' ? w.zh : w.en);
 
 const today = () => dayKey();
+/* This device's counters for today (daily totals across devices are in S.log). */
 const logToday = () => {
   const k = today();
-  S.log[k] = S.log[k] || { new: 0, right: 0, wrong: 0, done: false };
-  return S.log[k];
+  S.devlog[k] = S.devlog[k] || {};
+  const e = (S.devlog[k][DEV] = S.devlog[k][DEV] || { new: 0, right: 0, wrong: 0, done: false });
+  e.t = Date.now();
+  return e;
 };
 
 /* ---------------------------------------------------------------- shell */
@@ -64,7 +76,7 @@ function inkIn(root = app) {
 function route() {
   const h = location.hash.replace(/^#\/?/, '');
   const [view, arg] = h.split('/');
-  if (view === 'session') return session ? renderSession() : startSession();
+  if (view === 'session') return session ? renderSession() : syncFirst(() => startSession());
   if (view === 'theme' && themeById[arg]) return renderTheme(themeById[arg]);
   if (view === 'reglages') return renderSettings();
   if (view === 'exercices') return renderPractice();
@@ -113,7 +125,7 @@ function renderHome() {
   const st = stats();
   const sk = streak(S.log, today());
   const nothing = plan.reviews.length + plan.fresh.length === 0;
-  const keyCount = Object.keys(S.starred || {}).length + Object.keys(S.marked || {}).length;
+  const keyCount = liveKeys(S.starred).length + liveKeys(S.marked).length;
   const boxes = Array.from({ length: MAX_BOX + 1 }, (_, b) => WORDS.filter(w => (S.cards[w.id] ? S.cards[w.id].box : -1) === b).length);
   const boxMax = Math.max(1, ...boxes);
   const themeNames = S.settings.themes.length
@@ -320,9 +332,11 @@ function renderSettings() {
       </fieldset>
       <div class="actions"><button class="btn" type="submit">Enregistrer</button><span class="saved hand" hidden>enregistré&nbsp;✓</span></div>
     </form>
+    ${syncCard()}
+    ${installCard()}
     <div class="card form">
       <p class="kicker">Données · 数据</p>
-      <p>进度只保存在这台设备的浏览器里。换设备时先导出，再在另一台设备导入。${hasFrenchVoice() ? '' : '<br><b>提示：</b>这个浏览器没有找到法语语音，听写题会自动跳过。'}</p>
+      <p>${sync.config() ? '进度保存在这台设备上，并同步到你的私人 Gist。导出的文件可以留作备份。' : '没有连接同步时，进度只保存在这台设备的浏览器里。也可以导出文件，再在另一台设备导入。'}${hasFrenchVoice() ? '' : '<br><b>提示：</b>这个浏览器没有找到法语语音，听写题会自动跳过。'}</p>
       <div class="actions">
         <button class="btn ghost" data-act="export">导出进度</button>
         <label class="btn ghost file">导入进度<input type="file" accept="application/json" data-act="import" hidden></label>
@@ -343,6 +357,7 @@ function renderSettings() {
       exercises: f.getAll('ex').length ? f.getAll('ex') : ['recall'],
       themes: f.getAll('themes'),
     };
+    S.settingsT = Date.now();
     persist();
     const ok = e.target.querySelector('.saved');
     ok.hidden = false;
@@ -374,8 +389,8 @@ function pseudoWord(key) {
 function practicePools() {
   const learnedToday = WORDS.filter(w => S.cards[w.id] && S.cards[w.id].last === today());
   const seen = WORDS.filter(w => !isNew(S.cards[w.id]));
-  const starred = WORDS.filter(w => S.starred[w.id]);
-  const marked = Object.keys(S.marked).map(pseudoWord).filter(Boolean);
+  const starred = WORDS.filter(w => liveKeys(S.starred).includes(w.id));
+  const marked = liveKeys(S.marked).map(pseudoWord).filter(Boolean);
   return { today: learnedToday, seen, key: [...starred, ...marked], all: WORDS };
 }
 
@@ -396,8 +411,8 @@ function renderPractice() {
   const last = S.practice || { mode: 'recall', scope: pools.today.length ? 'today' : pools.seen.length ? 'seen' : 'all', theme: THEMES[0].id, count: '20' };
   const scopeRow = (v, label, n) =>
     `<label class="chip"><input type="radio" name="scope" value="${v}" ${last.scope === v ? 'checked' : ''} ${n === 0 ? 'disabled' : ''}><span>${label} <i>${n}</i></span></label>`;
-  const starred = WORDS.filter(w => S.starred[w.id]);
-  const marked = Object.keys(S.marked).filter(k => GLOSS[k]);
+  const starred = WORDS.filter(w => liveKeys(S.starred).includes(w.id));
+  const marked = liveKeys(S.marked).filter(k => GLOSS[k]);
   app.innerHTML = `
   <section class="practice">
     <a class="back" href="#/">← Retour</a>
@@ -465,6 +480,105 @@ function renderPractice() {
     startSession(null, { queue, free: true });
     if (session && location.hash !== '#/session') history.replaceState(null, '', '#/session');
   });
+}
+
+/* ---------------------------------------------------------------- sync & install */
+
+const fmtTime = t => (t ? new Date(t).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }) : '');
+
+function syncLabel(st = sync.getStatus()) {
+  return {
+    off: '',
+    syncing: '同步中…',
+    ok: `已同步 ${fmtTime(st.at)}`,
+    offline: '离线 · 联网后自动同步',
+    auth: '同步失败：令牌失效',
+    error: '同步出错，稍后重试',
+  }[st.state];
+}
+
+function paintSyncStatus(st = sync.getStatus()) {
+  const el = document.getElementById('syncstate');
+  if (el) {
+    el.textContent = syncLabel(st);
+    el.dataset.state = st.state;
+    el.hidden = st.state === 'off';
+  }
+  const box = document.getElementById('syncbox-state');
+  if (box) box.textContent = syncLabel(st) || '未连接';
+}
+
+function syncCard() {
+  const c = sync.config();
+  if (c) {
+    return `<div class="card form sync-card">
+      <p class="kicker">Synchronisation · 多设备同步</p>
+      <p class="sync-on"><span class="dot"></span> 已连接。电脑、手机网页、手机 App 用同一个令牌连接后，进度会自动合并。</p>
+      <p class="sub">状态：<b id="syncbox-state">${esc(syncLabel() || '…')}</b></p>
+      <div class="actions">
+        <button class="btn ghost" data-act="sync-now">立即同步</button>
+        <button class="btn ghost" data-act="sync-off">断开这台设备</button>
+      </div>
+      <p class="fine">什么时候同步：打开时、切回 App 时、每次答题后几秒、离开或切到后台时，以及打开期间每 4 分钟。两边同时学也不会互相覆盖：每个词以最近一次作答为准，每天的练习量按设备分别记录再相加。</p>
+    </div>`;
+  }
+  return `<div class="card form sync-card">
+    <p class="kicker">Synchronisation · 多设备同步</p>
+    <p>想在电脑和手机上接着学，就在每台设备上用同一个 GitHub 令牌连接一次。进度会存进你自己 GitHub 账号里的一个私密 Gist，没有任何第三方服务器。</p>
+    <ol class="steps">
+      <li>打开 <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → 新建 fine-grained token</a>。</li>
+      <li>名称写 FRvc，有效期选最长；<b>Account permissions → Gists</b> 选 <b>Read and write</b>，其他都不用勾。</li>
+      <li>生成后复制令牌，粘贴到下面，点「连接」。手机上也粘贴同一个令牌。</li>
+    </ol>
+    <form class="token-form" id="token-form" autocomplete="off">
+      <input type="password" name="token" placeholder="github_pat_…" aria-label="GitHub 令牌" spellcheck="false" autocapitalize="off">
+      <button class="btn" type="submit">连接</button>
+    </form>
+    <p class="fine" id="token-msg">令牌只保存在这台设备上，只能读写 Gist，不能访问你的仓库。随时可以在 GitHub 上撤销。</p>
+  </div>`;
+}
+
+function installCard() {
+  const s = installState();
+  if (s.standalone) {
+    return `<div class="card form"><p class="kicker">Application · 手机 App</p><p>你正在使用已安装的 FRvc App。${sync.config() ? '' : '<b>记得在这里也连接一次同步</b>：手机主屏幕上的 App 和浏览器里的网页存储是分开的。'}</p></div>`;
+  }
+  return `<div class="card form install-card">
+    <p class="kicker">Application · 装到手机</p>
+    <p>FRvc 可以像 App 一样装到手机主屏幕：全屏打开、有图标、没网也能学（同步会在联网后补上）。</p>
+    ${s.canPrompt ? '<div class="actions"><button class="btn" data-act="install">安装 FRvc</button></div>' : ''}
+    <ul class="steps">
+      <li><b>iPhone / iPad：</b>用 Safari 打开这个网页 → 底部「分享」 → 「添加到主屏幕」。</li>
+      <li><b>Android：</b>用 Chrome 打开 → 右上角菜单 → 「安装应用」或「添加到主屏幕」。</li>
+      <li><b>电脑：</b>Chrome / Edge 地址栏右侧的安装图标。</li>
+    </ul>
+    <p class="fine">装好后打开 App，在「Réglages」里粘贴同一个令牌连接同步。iPhone 上主屏幕 App 的存储和 Safari 是分开的，所以这一步必不可少。</p>
+  </div>`;
+}
+
+/*
+ * Before a session is built, pull what the other devices did (at most 3 s; offline it just
+ * starts), so the same new words are not handed out twice on two devices.
+ */
+async function syncFirst(start) {
+  const st = sync.getStatus();
+  if (!sync.config() || (st.state === 'ok' && Date.now() - st.at < 20000)) return start();
+  setView('session');
+  app.innerHTML = '<section class="session"><p class="loading hand">un instant…</p><p class="loading-sub">正在同步其他设备的进度</p></section>';
+  await Promise.race([sync.syncNow(), new Promise(r => setTimeout(r, 3000))]);
+  start();
+}
+
+/* Merged progress from another device arrived: use it and refresh what is on screen. */
+function applyRemote(merged) {
+  S = merged;
+  S.log = aggregateLog(S.devlog);
+  store.save(S);
+  const v = document.body.dataset.view;
+  if (v === 'session') return; // never redraw under a question
+  const active = document.activeElement;
+  if (v === 'settings' && active && active.closest && active.closest('form')) return;
+  route();
 }
 
 /* ---------------------------------------------------------------- session */
@@ -970,12 +1084,12 @@ document.addEventListener('click', e => {
     case 'copy-done':
       return submit('', { ok: true });
     case 'unmark': {
-      delete S.marked[t.dataset.key.replace(/’/g, "'")];
+      S.marked[t.dataset.key.replace(/’/g, "'")] = { del: true, t: Date.now() };
       persist();
       return renderPractice();
     }
     case 'unstar': {
-      delete S.starred[t.dataset.id];
+      S.starred[t.dataset.id] = { del: true, t: Date.now() };
       persist();
       return renderPractice();
     }
@@ -992,10 +1106,11 @@ document.addEventListener('click', e => {
     }
     case 'more': {
       const pool = S.settings.themes.length ? WORDS.filter(w => S.settings.themes.includes(w.theme)) : WORDS;
-      const fresh = pool.filter(w => isNew(S.cards[w.id])).slice(0, 5);
-      startSession({ fresh, reviews: [] });
-      if (session && location.hash !== '#/session') history.replaceState(null, '', '#/session');
-      return;
+      return syncFirst(() => {
+        const fresh = pool.filter(w => isNew(S.cards[w.id])).slice(0, 5);
+        startSession({ fresh, reviews: [] });
+        if (session && location.hash !== '#/session') history.replaceState(null, '', '#/session');
+      });
     }
     case 'study-theme': {
       const id = t.dataset.theme;
@@ -1007,8 +1122,18 @@ document.addEventListener('click', e => {
     }
     case 'export':
       return store.exportFile(S);
+    case 'sync-now':
+      return sync.syncNow();
+    case 'sync-off':
+      if (confirm('断开这台设备的同步？已同步的进度会保留在这台设备和云端。')) {
+        sync.disconnect();
+        renderSettings();
+      }
+      return;
+    case 'install':
+      return promptInstall().then(renderSettings);
     case 'reset':
-      if (confirm('清空全部学习进度？此操作无法撤销。')) {
+      if (confirm(sync.config() ? '清空全部学习进度？已连接同步，所有设备上的进度都会被清空，无法撤销。' : '清空全部学习进度？此操作无法撤销。')) {
         S = store.reset();
         persist();
         renderSettings();
@@ -1022,6 +1147,7 @@ document.addEventListener('change', async e => {
   if (e.target.dataset && e.target.dataset.act === 'import' && e.target.files[0]) {
     try {
       S = await store.importFile(e.target.files[0]);
+      S.log = aggregateLog(S.devlog);
       persist();
       alert('进度已导入。');
       location.hash = '#/';
@@ -1031,7 +1157,22 @@ document.addEventListener('change', async e => {
   }
 });
 
-document.addEventListener('submit', e => {
+document.addEventListener('submit', async e => {
+  if (e.target.id === 'token-form') {
+    e.preventDefault();
+    const tok = e.target.token.value.trim();
+    const msg = document.getElementById('token-msg');
+    if (!tok) return;
+    msg.textContent = '正在连接…';
+    try {
+      await sync.connect(tok);
+      renderSettings();
+    } catch (err) {
+      msg.textContent = `连接失败：${err.message}。请检查令牌的 Gists 权限是否为 Read and write。`;
+      msg.classList.add('warn');
+    }
+    return;
+  }
   if (!e.target.classList.contains('answer-form')) return;
   e.preventDefault();
   const v = e.target.querySelector('.answer').value;
@@ -1096,6 +1237,8 @@ if (/[?&]test\b/.test(location.search)) {
 initSpeech();
 S.marked = S.marked || {};
 S.starred = S.starred || {};
+S.devlog = S.devlog || {};
+S.log = aggregateLog(S.devlog);
 initGloss({
   state: () => S,
   persist,
@@ -1106,3 +1249,9 @@ initGloss({
 });
 route();
 startBirds();
+initPwa({ onChange: () => document.body.dataset.view === 'settings' && renderSettings() });
+sync.initSync({
+  state: () => S,
+  apply: applyRemote,
+  onStatus: paintSyncStatus,
+});

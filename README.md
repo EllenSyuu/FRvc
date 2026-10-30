@@ -16,7 +16,7 @@ its meaning and marked as one you do not know.
 ![Words: 260](https://img.shields.io/badge/words-260%20·%2013%20themes-cf602b)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**[Open the notebook](https://ellensyuu.github.io/FRvc/)** · [Why](#why) · [How a day works](#how-a-day-works) · [Exercises](#ways-to-check-a-word) · [Hover to translate](#every-word-hoverable-mark-what-you-do-not-know) · [Free practice](#free-practice) · [Answer checking](#answer-checking) · [The deck](#the-deck) · [Run locally](#run-locally)
+**[Open the notebook](https://ellensyuu.github.io/FRvc/)** · [Why](#why) · [How a day works](#how-a-day-works) · [Exercises](#ways-to-check-a-word) · [Hover to translate](#every-word-hoverable-mark-what-you-do-not-know) · [Free practice](#free-practice) · [Phone app and sync](#phone-app-and-sync-across-devices) · [Answer checking](#answer-checking) · [The deck](#the-deck) · [Run locally](#run-locally)
 
 </div>
 
@@ -101,6 +101,35 @@ practice counts towards the day's activity but never moves the review schedule.
 
 <img alt="Whole-sentence translation answered with one word missing: the reference sentence is shown with the missing word underlined" src="docs/img/translate.jpg" width="100%">
 
+## Phone app and sync across devices
+
+FRvc is an installable web app (PWA): on a phone, *Add to Home Screen* (Safari) or
+*Install app* (Chrome) gives it its own icon, a full-screen window and offline use. The
+service worker fetches the app's own files network-first, so an update is picked up on
+the next open and the cached copy is only used offline.
+
+Progress can follow you between the computer, the phone's browser and the installed app
+(on iOS the home-screen app and Safari do not share storage, so this matters). There is no
+FRvc server: each device connects once with the same fine-grained GitHub token that can
+only read and write Gists, and the progress is kept in a private Gist in your own account.
+Syncing happens on open, on return to the app, a few seconds after each answer, when the
+app goes to the background, when the network comes back and every few minutes; a session
+waits up to 3 s for it before handing out new words.
+
+Every sync is pull → merge → push, and the merge ([`js/merge.js`](js/merge.js)) is built so
+that studying on two devices in any order never loses or double-counts anything:
+
+| Data | Merge rule |
+| --- | --- |
+| A word's review state | the most recent answer wins (timestamped on every grade) |
+| Daily counts | kept per device and summed; a device only ever updates its own entry |
+| Key words, starred words | the most recent change wins; un-marking leaves a dated tombstone |
+| Settings | the most recently saved settings win |
+| "Clear all progress" | removes everything older than it, on every device |
+
+The token stays in the browser where it was entered, is never part of the synced data,
+and can be revoked on GitHub at any time.
+
 ## Answer checking
 
 `js/check.js` is a small pure module (no DOM) that tells kinds of mistakes apart instead of
@@ -164,19 +193,23 @@ js/app.js           views, the session engine and the six exercises
 js/check.js         answer checking, sentence diff, copy check (pure, unit-tested)
 js/gloss.js         hoverable sentences, key-word marks, bracketed translations
 js/srs.js           Leitner schedule and the daily plan (pure, unit-tested)
-js/store.js         progress in localStorage, JSON export / import
+js/store.js         progress in localStorage, migrations, JSON export / import
+js/merge.js         merging progress from several devices (pure, unit-tested)
+js/sync.js          sync through a private Gist
+js/pwa.js, sw.js    installable app, offline support
+manifest.webmanifest
 js/speech.js        pronunciation through the browser's speech synthesis
 js/art.js           the drawn plate, theme icons, the 30-day sketch, the odd passing gull
 data/deck.js        the vocabulary
 data/glossary.js    a gloss for every word form in the example sentences
-tests/              node:test suites for check.js, srs.js, the deck and the glossary
+tests/              node:test suites for check.js, srs.js, merge.js, the deck and the glossary
 ```
 
 ## Privacy
 
-Nothing leaves the browser. There is no analytics, no cookie and no network request
-apart from loading the page itself; pronunciation uses the voices installed on the
-device. Clearing site data clears progress, so export it before switching devices.
+There is no analytics and no cookie. Without sync, nothing leaves the browser; with sync,
+progress goes only to a private Gist in your own GitHub account. Pronunciation uses the
+voices installed on the device.
 
 ## Design
 
@@ -189,7 +222,7 @@ self-hosted under the SIL Open Font License (see [`fonts/`](fonts/)).
 ## Roadmap
 
 - Grow the deck towards a full B1–B2 exam list (verbs with their prepositions, false friends, NCLC 7 writing connectors).
-- Installable offline app (PWA) and a reminder at a chosen time.
+- A daily reminder at a chosen time.
 - Import a word list (CSV) to study your own vocabulary with the same exercises.
 - Spoken answers through the browser's speech recognition, for the speaking tasks.
 
