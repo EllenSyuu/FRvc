@@ -6,7 +6,9 @@
 
 A static web app that hands you a list of words every day, teaches each one with its
 article and an example sentence, and checks that you really know it: spelling, gender,
-fill-in-the-blank, sentence building and dictation, on a spaced-repetition schedule.
+fill-in-the-blank, whole-sentence translation, copying, sentence building and dictation,
+on a spaced-repetition schedule. Every word of every example sentence can be hovered for
+its meaning and marked as one you do not know.
 
 [![Test and deploy](https://github.com/EllenSyuu/FRvc/actions/workflows/site.yml/badge.svg)](https://github.com/EllenSyuu/FRvc/actions/workflows/site.yml)
 ![No build step](https://img.shields.io/badge/build-none-22314a)
@@ -14,7 +16,7 @@ fill-in-the-blank, sentence building and dictation, on a spaced-repetition sched
 ![Words: 260](https://img.shields.io/badge/words-260%20·%2013%20themes-cf602b)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**[Open the notebook](https://ellensyuu.github.io/FRvc/)** · [Why](#why) · [How a day works](#how-a-day-works) · [Exercises](#six-ways-to-check-a-word) · [Answer checking](#answer-checking) · [The deck](#the-deck) · [Run locally](#run-locally)
+**[Open the notebook](https://ellensyuu.github.io/FRvc/)** · [Why](#why) · [How a day works](#how-a-day-works) · [Exercises](#ways-to-check-a-word) · [Hover to translate](#every-word-hoverable-mark-what-you-do-not-know) · [Free practice](#free-practice) · [Answer checking](#answer-checking) · [The deck](#the-deck) · [Run locally](#run-locally)
 
 </div>
 
@@ -55,7 +57,7 @@ a word counts as *acquis* (learned). The home page shows the box distribution, t
 30 days as a hatched sketch (denser hatching = more practice, a tick = the day's plan
 finished) and the current streak.
 
-## Six ways to check a word
+## Ways to check a word
 
 | | |
 | --- | --- |
@@ -64,11 +66,40 @@ finished) and the current streak.
 | <img alt="Sentence building: shuffled word tiles being put in order under a Chinese translation" src="docs/img/build.jpg"> | <img alt="Gender question for 'salaire' answered wrongly, showing the correct form 'le salaire'" src="docs/img/gender.jpg"> |
 | **Réutiliser** — rebuild the shuffled example sentence from its translation; the speaking and writing tasks reward exactly this. | **Le ou la ?** — the bare noun, masculine or feminine. Gender errors are among the most visible in written French. |
 
-Plus **Rappeler** (see the meaning, type the French with its article), **Reconnaître**
-(four-way multiple choice in both directions, distractors drawn from the same theme and
-part of speech) and **Dictée** (listen, type; normal and slow speed). An on-screen row of
+Plus **Rappeler** (see the meaning, type the French with its article), **Traduire**
+(translate the whole example sentence from Chinese; missing or different words are
+marked against the reference), **Recopier** (copy the word and the sentence, checked
+letter by letter as you type), **Reconnaître** (four-way multiple choice in both
+directions, distractors drawn from the same theme and part of speech) and **Dictée**
+(listen, type; normal and slow speed). An on-screen row of
 accented letters (é è ê à â ç ô î û ù ë ï œ ’) makes typing workable on any keyboard.
 Every exercise type can be switched off in *Réglages*.
+
+## Every word hoverable, mark what you do not know
+
+<img alt="A new-word card: hovering 'trouvé' in the example sentence opens a small card with its meaning and a button to mark it; marked words are followed by their translation in brackets; below, a copying box checks the typed word and sentence letter by letter" src="docs/img/hover.jpg" width="100%">
+
+Every word of every example sentence carries a gloss (900 forms, written for this deck,
+with the dictionary form for conjugated verbs — *trouvé → trouver*). Hover a word, or tap
+it on a phone, to see it. **☆ 不认识，标为重点** marks it: from then on, wherever that word
+appears in any example sentence it is followed by its translation in brackets —
+*Après six mois de（……的）recherche* — until you unmark it. Marking a card's own word
+also puts that deck entry on the 重点 list.
+
+New-word cards have an optional copying box: type the word and the example sentence out
+once, and the first wrong character is pointed out as you type.
+
+## Free practice
+
+<img alt="The practice page: eight exercise types (spelling, fill-in-the-blank, whole-sentence translation, copying, sentence building, dictation, gender, mixed), the words to practise and how many" src="docs/img/practice.jpg" width="100%">
+
+*Exercices* lets you drill as much as you like, outside the schedule: pick an exercise
+(or *mixed*), the words — learned today, everything learned so far, **my key words**,
+the whole deck or one theme — and how many. Words you marked inside sentences become
+practice items of their own, with the sentence you found them in as the gap. Free
+practice counts towards the day's activity but never moves the review schedule.
+
+<img alt="Whole-sentence translation answered with one word missing: the reference sentence is shown with the missing word underlined" src="docs/img/translate.jpg" width="100%">
 
 ## Answer checking
 
@@ -82,6 +113,7 @@ returning right/wrong:
 | article | `le loyer` → `loyer` | wrong: *learn it with its article* |
 | gender | `le loyer` → `la loyer` | wrong: *it is masculine* |
 | typo | `déménager` → `déménnager` | wrong: *one letter away* |
+| close | a sentence with ≥ 75 % of the reference words | wrong: *nearly — these words differ* |
 | wrong | anything else | wrong |
 
 Case, extra spaces, curly vs. straight apostrophes and `œ`/`oe` are normalised. `un` and
@@ -109,9 +141,10 @@ Every entry is one line in [`data/deck.js`](data/deck.js):
 ```
 
 `[[…]]` marks the word inside the sentence, which is what the fill-in-the-blank asks
-for. All example sentences and translations were written for this project. The tests
-check that every entry is complete, every noun's article agrees with its gender, every
-example has exactly one gap, and that no word appears twice — so the deck can grow
+for. All example sentences, translations and glosses were written for this project. The
+tests check that every entry is complete, every noun's article agrees with its gender,
+every example has exactly one gap, no word appears twice, and every word of every
+sentence has a gloss in [`data/glossary.js`](data/glossary.js) — so the deck can grow
 safely towards a full exam list.
 
 ## Run locally
@@ -128,13 +161,15 @@ npm test                         # Node ≥ 20; no packages to install
 index.html          the page shell
 css/style.css       the atelier look: ink on warm paper, hairlines, pen draw-in
 js/app.js           views, the session engine and the six exercises
-js/check.js         answer checking (pure, unit-tested)
+js/check.js         answer checking, sentence diff, copy check (pure, unit-tested)
+js/gloss.js         hoverable sentences, key-word marks, bracketed translations
 js/srs.js           Leitner schedule and the daily plan (pure, unit-tested)
 js/store.js         progress in localStorage, JSON export / import
 js/speech.js        pronunciation through the browser's speech synthesis
 js/art.js           the drawn plate, theme icons, the 30-day sketch, the odd passing gull
 data/deck.js        the vocabulary
-tests/              node:test suites for check.js, srs.js and the deck
+data/glossary.js    a gloss for every word form in the example sentences
+tests/              node:test suites for check.js, srs.js, the deck and the glossary
 ```
 
 ## Privacy

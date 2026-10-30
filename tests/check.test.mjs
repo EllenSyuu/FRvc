@@ -55,3 +55,27 @@ test('diff marks accents separately from wrong letters', () => {
   assert.equal(m[4].s, 'accent');
   assert.ok(m.filter(x => x.s === 'diff').length === 0);
 });
+
+import { checkSentence, wordDiff, copyProgress } from '../js/check.js';
+
+test('whole sentences: punctuation spacing and case are ignored', () => {
+  const e = "Le centre est bruyant ; [[en revanche]], tout est accessible à pied.";
+  assert.equal(checkSentence('le centre est bruyant; en revanche, tout est accessible à pied', e).verdict, 'exact');
+  assert.equal(checkSentence('Le centre est bruyant ; en revanche, tout est accessible a pied.', e).verdict, 'accent');
+  const c = checkSentence('Le centre est bruyant, mais tout est accessible à pied.', e);
+  assert.equal(c.ok, false);
+  assert.equal(c.verdict, 'close');
+});
+
+test('word diff marks the words that are missing', () => {
+  const d = wordDiff('Je fais du sport par semaine', 'Je [[fais du sport]] trois fois par semaine.');
+  assert.deepEqual(d.filter(x => x.s === 'miss').map(x => x.w), ['trois', 'fois']);
+});
+
+test('copy progress finds the first wrong character', () => {
+  assert.equal(copyProgress('le loyer', 'le loyer').done, true);
+  const p = copyProgress('le loiy', 'le loyer');
+  assert.equal(p.wrongAt, 5);
+  assert.equal(p.expectedChar, 'y');
+  assert.equal(copyProgress('Le Loy', 'le loyer').wrongAt, -1);
+});

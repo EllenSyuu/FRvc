@@ -143,3 +143,61 @@ export const sentenceTokens = ex => {
   }
   return out;
 };
+
+/*
+ * Whole-sentence answers (the translation exercise). Punctuation spacing, case,
+ * apostrophes and the final full stop are ignored; accents are judged as for single words.
+ * wordDiff() marks which words of the reference were matched, in order (longest common
+ * subsequence), so the feedback can underline what was missing or different.
+ */
+const sentenceForm = s =>
+  normalize(s)
+    .replace(/[«»"“”]/g, '')
+    .replace(/\s*([,;:!?.])\s*/g, '$1 ')
+    .replace(/\s+/g, ' ')
+    .replace(/[\s,;:!?.]+$/, '')
+    .trim();
+
+const words = s => sentenceForm(s).split(/[\s,;:!?.]+/).filter(Boolean);
+
+export function checkSentence(typed, expected, { strictAccents = false } = {}) {
+  const t = sentenceForm(typed);
+  const e = sentenceForm(plainSentence(expected));
+  if (!t) return { ok: false, verdict: 'wrong' };
+  if (t === e) return { ok: true, verdict: 'exact' };
+  if (stripAccents(t) === stripAccents(e)) return { ok: !strictAccents, verdict: 'accent' };
+  const d = wordDiff(typed, expected);
+  const hit = d.filter(x => x.s === 'same').length;
+  return { ok: false, verdict: hit / d.length >= 0.75 ? 'close' : 'wrong', score: hit / d.length };
+}
+
+export function wordDiff(typed, expected) {
+  const a = words(typed).map(stripAccents);
+  const bRaw = plainSentence(expected).split(/\s+/).filter(Boolean);
+  const b = bRaw.map(w => stripAccents(sentenceForm(w)).replace(/[,;:!?.]/g, ''));
+  const L = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--)
+    for (let j = b.length - 1; j >= 0; j--)
+      L[i][j] = a[i] === b[j] && b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const same = new Set();
+  let i = 0;
+  let j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j] && b[j]) {
+      same.add(j);
+      i++;
+      j++;
+    } else if (L[i + 1][j] >= L[i][j + 1]) i++;
+    else j++;
+  }
+  return bRaw.map((w, k) => ({ w, s: same.has(k) || !b[k] ? 'same' : 'miss' }));
+}
+
+/* Copying aid: how much of `target` has been typed correctly so far. */
+export function copyProgress(typed, target) {
+  const t = normalize(typed);
+  const e = normalize(target);
+  let n = 0;
+  while (n < t.length && n < e.length && t[n] === e[n]) n++;
+  return { done: t === e, matched: n, wrongAt: n < t.length ? n : -1, expectedChar: e[n] || '', total: e.length };
+}

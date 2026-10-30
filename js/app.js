@@ -1,9 +1,11 @@
 import { THEMES, WORDS } from '../data/deck.js';
-import { checkAnswer, clozeParts, plainSentence, sentenceTokens, bareNoun, isNoun, diffMarks } from './check.js';
+import { checkAnswer, checkSentence, wordDiff, copyProgress, clozeParts, plainSentence, sentenceTokens, bareNoun, isNoun, diffMarks } from './check.js';
 import { dayKey, addDays, grade, planDay, streak, isLearned, isNew, LEARNED_BOX, MAX_BOX } from './srs.js';
 import * as store from './store.js';
 import { initSpeech, speak, hasFrenchVoice } from './speech.js';
 import { heroPlate, themeIcon, tickMark, crossMark, speakerIcon, monthSketch, startBirds } from './art.js';
+import { GLOSS, tokenize } from '../data/glossary.js';
+import { initGloss, sentenceHtml, starButton, refresh as refreshGloss, shortZh, hide as hidePop } from './gloss.js';
 
 /* ---------------------------------------------------------------- state */
 
@@ -35,6 +37,7 @@ const KIND = {
   adj: ['adj.', '形容词'],
   adv: ['adv.', '副词'],
   loc: ['loc.', '固定表达'],
+  w: ['mot', '例句里标记的词'],
 };
 const meaning = w => (S.settings.prompt === 'en' ? w.en : w.zh);
 const meaningAlt = w => (S.settings.prompt === 'en' ? w.zh : w.en);
@@ -64,6 +67,7 @@ function route() {
   if (view === 'session') return session ? renderSession() : startSession();
   if (view === 'theme' && themeById[arg]) return renderTheme(themeById[arg]);
   if (view === 'reglages') return renderSettings();
+  if (view === 'exercices') return renderPractice();
   return renderHome();
 }
 window.addEventListener('hashchange', route);
@@ -109,6 +113,7 @@ function renderHome() {
   const st = stats();
   const sk = streak(S.log, today());
   const nothing = plan.reviews.length + plan.fresh.length === 0;
+  const keyCount = Object.keys(S.starred || {}).length + Object.keys(S.marked || {}).length;
   const boxes = Array.from({ length: MAX_BOX + 1 }, (_, b) => WORDS.filter(w => (S.cards[w.id] ? S.cards[w.id].box : -1) === b).length);
   const boxMax = Math.max(1, ...boxes);
   const themeNames = S.settings.themes.length
@@ -129,6 +134,7 @@ function renderHome() {
             ? `<p class="done-line"><span class="hand">Tout est fait&nbsp;!</span> 今天的清单完成了。</p>
                <div class="actions">
                  <button class="btn" data-act="more">再学 5 个新词</button>
+                 <a class="btn ghost" href="#/exercices">自由练习</a>
                  <a class="btn ghost" href="#/theme/${(THEMES.find(t => WORDS.some(w => w.theme === t.id && isNew(S.cards[w.id]))) || THEMES[0]).id}">浏览主题</a>
                </div>`
             : `<div class="nums">
@@ -138,9 +144,9 @@ function renderHome() {
                </div>
                <div class="actions">
                  <a class="btn" href="#/session">Commencer la séance <span aria-hidden="true">→</span></a>
-                 <a class="btn ghost" href="#/reglages">每日数量与主题</a>
+                 <a class="btn ghost" href="#/exercices">自由练习</a>
                </div>
-               <p class="note">新词来自：${esc(themeNames)}。</p>`
+               <p class="note">新词来自：${esc(themeNames)}。<a href="#/reglages">调整每日数量与主题</a>${keyCount ? ` · 重点词 ${keyCount} 个，<a href="#/exercices">去练</a>` : ''}</p>`
         }
       </div>
     </div>
@@ -265,9 +271,9 @@ function renderTheme(t) {
           return `<li>
             <button class="say" data-say="${esc(w.fr)}" aria-label="Écouter ${esc(w.fr)}">${speakerIcon()}</button>
             <div class="w">
-              <span class="fr">${esc(w.fr)}</span><span class="kind">${KIND[w.kind][0]}</span>
+              <span class="fr">${esc(w.fr)}</span><span class="kind">${KIND[w.kind][0]}</span>${starButton(w.id)}
               <span class="mean">${esc(w.zh)} <i>${esc(w.en)}</i></span>
-              <details><summary>例句</summary><p class="ex">${highlight(w.ex)}</p><p class="tr">${esc(w.tr)}</p></details>
+              <details><summary>例句</summary><p class="ex">${sentenceHtml(w)}</p><p class="tr">${esc(w.tr)}</p></details>
             </div>
             <span class="pips" title="${box < 0 ? '未学' : `第 ${box} 号盒子`}">${Array.from({ length: MAX_BOX }, (_, i) => `<i class="${i < box ? (i + 1 >= LEARNED_BOX ? 'w' : 'f') : ''}"></i>`).join('')}</span>
           </li>`;
@@ -278,10 +284,6 @@ function renderTheme(t) {
   inkIn();
 }
 
-const highlight = ex => {
-  const p = clozeParts(ex);
-  return p ? `${esc(p.before)}<mark>${esc(p.answer)}</mark>${esc(p.after)}` : esc(ex);
-};
 
 /* ---------------------------------------------------------------- settings */
 
@@ -295,6 +297,7 @@ function renderSettings() {
     ['choice', '四选一'],
     ['gender', '阴阳性'],
     ['dictation', '听写'],
+    ['translate', '整句翻译'],
   ];
   app.innerHTML = `
   <section class="settings">
@@ -347,6 +350,123 @@ function renderSettings() {
   });
 }
 
+/* ---------------------------------------------------------------- free practice */
+
+/*
+ * Words marked inside example sentences become practice items of their own: the form as it
+ * appears, its gloss, and the sentence it was marked in with that form as the gap.
+ */
+const pseudoById = {};
+function pseudoWord(key) {
+  const info = S.marked[key];
+  const src = byId[info && info.from];
+  const g = GLOSS[key];
+  if (!src || !g) return null;
+  const toks = tokenize(plainSentence(src.ex));
+  const k = toks.findIndex(t => t.word && t.key === key);
+  if (k < 0) return null;
+  const ex = toks.map((t, i) => (i === k ? `[[${t.text}]]` : t.text)).join('');
+  const w = { id: `g:${key}`, theme: src.theme, fr: toks[k].text.toLowerCase(), kind: 'w', zh: shortZh(g.zh), en: g.en, ex, tr: src.tr };
+  pseudoById[w.id] = w;
+  return w;
+}
+
+function practicePools() {
+  const learnedToday = WORDS.filter(w => S.cards[w.id] && S.cards[w.id].last === today());
+  const seen = WORDS.filter(w => !isNew(S.cards[w.id]));
+  const starred = WORDS.filter(w => S.starred[w.id]);
+  const marked = Object.keys(S.marked).map(pseudoWord).filter(Boolean);
+  return { today: learnedToday, seen, key: [...starred, ...marked], all: WORDS };
+}
+
+const PRACTICE_MODES = [
+  ['recall', '背诵拼写', '看中文，写出法语（名词带冠词）'],
+  ['cloze', '例句填空', '例句挖空，填出原句里的形式'],
+  ['translate', '整句翻译', '看中文句子，写出整句法语'],
+  ['copy', '抄写', '单词和例句各抄一遍，逐字检查'],
+  ['build', '组句', '把打乱的例句排好'],
+  ['dictation', '听写', '听发音写出来'],
+  ['gender', '阴阳性', '只练名词的 le / la'],
+  ['mix', '混合', '每个词随机一种题型'],
+];
+
+function renderPractice() {
+  setView('practice');
+  const pools = practicePools();
+  const last = S.practice || { mode: 'recall', scope: pools.today.length ? 'today' : pools.seen.length ? 'seen' : 'all', theme: THEMES[0].id, count: '20' };
+  const scopeRow = (v, label, n) =>
+    `<label class="chip"><input type="radio" name="scope" value="${v}" ${last.scope === v ? 'checked' : ''} ${n === 0 ? 'disabled' : ''}><span>${label} <i>${n}</i></span></label>`;
+  const starred = WORDS.filter(w => S.starred[w.id]);
+  const marked = Object.keys(S.marked).filter(k => GLOSS[k]);
+  app.innerHTML = `
+  <section class="practice">
+    <a class="back" href="#/">← Retour</a>
+    <p class="eyebrow">Exercices libres · 自由练习</p>
+    <h1 class="medium-heading">S’entraîner<em class="accent">.</em></h1>
+    <p class="lede">想练多少练多少。自由练习不会改动复习排期，只记进今天的练习量和 30 天打勾图。</p>
+    <form class="card form" id="practice">
+      <fieldset><legend>练什么 · Exercice</legend>
+        <div class="modes">${PRACTICE_MODES.map(
+          ([v, l, d]) => `<label class="mode"><input type="radio" name="mode" value="${v}" ${last.mode === v ? 'checked' : ''} ${v === 'dictation' && !hasFrenchVoice() ? 'disabled' : ''}><span><b>${l}</b><i>${v === 'dictation' && !hasFrenchVoice() ? '此浏览器没有法语语音' : d}</i></span></label>`,
+        ).join('')}</div>
+      </fieldset>
+      <fieldset><legend>练哪些词 · Mots</legend>
+        ${scopeRow('today', '今天学过的', pools.today.length)}
+        ${scopeRow('seen', '所有学过的', pools.seen.length)}
+        ${scopeRow('key', '我的重点', pools.key.length)}
+        ${scopeRow('all', '全部词库', pools.all.length)}
+        <label class="chip"><input type="radio" name="scope" value="theme" ${last.scope === 'theme' ? 'checked' : ''}><span>主题</span></label>
+        <select name="theme" aria-label="主题">${THEMES.map(t => `<option value="${t.id}" ${last.theme === t.id ? 'selected' : ''}>${esc(t.fr)} · ${esc(t.zh)}</option>`).join('')}</select>
+      </fieldset>
+      <fieldset><legend>数量</legend>
+        ${['10', '20', '40', 'all'].map(n => `<label class="chip"><input type="radio" name="count" value="${n}" ${last.count === n ? 'checked' : ''}><span>${n === 'all' ? '全部' : n}</span></label>`).join('')}
+      </fieldset>
+      <div class="actions"><button class="btn" type="submit">Commencer <span aria-hidden="true">→</span></button><span class="note warn" hidden></span></div>
+    </form>
+
+    <div class="card form keylist">
+      <p class="kicker">Mes mots difficiles · 我的重点</p>
+      ${
+        starred.length + marked.length
+          ? `<ul>
+              ${starred.map(w => `<li><span class="fr">${esc(w.fr)}</span> <span class="mean">${esc(w.zh)}</span><button type="button" class="x" data-act="unstar" data-id="${w.id}" aria-label="取消重点">×</button></li>`).join('')}
+              ${marked.map(k => `<li><span class="fr">${esc(k)}</span><span class="gl">（${esc(shortZh(GLOSS[k].zh))}）</span> <span class="mean from">见于 ${esc(byId[S.marked[k].from] ? byId[S.marked[k].from].fr : '')}</span><button type="button" class="x" data-act="unmark" data-key="${esc(k)}" aria-label="取消重点">×</button></li>`).join('')}
+            </ul>`
+          : '<p class="empty">还没有。学习时把鼠标移到例句里的词上（手机上点一下），选「标为重点」；或者点单词旁的 ☆。标过的词会出现在这里，并且在所有例句里一直带着（翻译）。</p>'
+      }
+    </div>
+  </section>`;
+
+  document.getElementById('practice').addEventListener('submit', e => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const opt = { mode: f.get('mode'), scope: f.get('scope'), theme: f.get('theme'), count: f.get('count') };
+    S.practice = opt;
+    persist();
+    const P = practicePools();
+    let words = opt.scope === 'theme' ? WORDS.filter(w => w.theme === opt.theme) : P[opt.scope] || [];
+    const kinds = {
+      gender: w => isNoun(w.kind),
+      dictation: () => hasFrenchVoice(),
+    };
+    if (kinds[opt.mode]) words = words.filter(kinds[opt.mode]);
+    const warn = e.target.querySelector('.warn');
+    if (!words.length) {
+      warn.hidden = false;
+      warn.textContent = opt.mode === 'gender' ? '这组词里没有名词。' : '这组词是空的，换一个范围试试。';
+      return;
+    }
+    words = shuffle(words);
+    if (opt.count !== 'all') words = words.slice(0, Number(opt.count));
+    const mixPool = w =>
+      ['recall', 'cloze', 'translate', 'build', 'copy']
+        .concat(isNoun(w.kind) ? ['gender'] : [], hasFrenchVoice() ? ['dictation'] : []);
+    const queue = words.map(w => ({ w, type: opt.mode === 'mix' ? pickOne(mixPool(w)) : opt.mode }));
+    startSession(null, { queue, free: true });
+    if (session && location.hash !== '#/session') history.replaceState(null, '', '#/session');
+  });
+}
+
 /* ---------------------------------------------------------------- session */
 
 let session = null;
@@ -356,7 +476,7 @@ const can = t => S.settings.exercises.includes(t) && (t !== 'dictation' || hasFr
 function reviewType(w, box) {
   const noun = isNoun(w.kind);
   const early = ['choice', 'choiceRev', 'cloze'].concat(noun ? ['gender'] : []);
-  const late = ['recall', 'cloze', 'build', 'dictation', 'recall'].concat(noun ? ['gender'] : []);
+  const late = ['recall', 'cloze', 'build', 'dictation', 'recall'].concat(noun ? ['gender'] : [], box >= 4 ? ['translate'] : []);
   const pool = (box <= 2 ? early : late).filter(t => can(t === 'choiceRev' ? 'choice' : t));
   return pool.length ? pickOne(pool) : 'recall';
 }
@@ -378,14 +498,14 @@ function buildQueue(fresh, reviews) {
   return q.filter(it => it.type !== 'intro2');
 }
 
-function startSession(override) {
-  const plan = override || todayPlan();
-  const q = buildQueue(plan.fresh, plan.reviews);
+function startSession(override, { queue = null, free = false } = {}) {
+  const plan = override || (queue ? { fresh: [], reviews: [] } : todayPlan());
+  const q = queue || buildQueue(plan.fresh, plan.reviews);
   if (!q.length) {
     location.hash = '#/';
     return;
   }
-  session = { q, i: 0, right: 0, wrong: 0, missed: new Set(), state: 'ask', freshCount: plan.fresh.length, introduced: new Set(), tries: {} };
+  session = { q, i: 0, right: 0, wrong: 0, missed: new Set(), state: 'ask', freshCount: plan.fresh.length, introduced: new Set(), tries: {}, free };
   renderSession();
 }
 
@@ -404,7 +524,7 @@ function renderSession() {
   app.innerHTML = `
   <section class="session">
     <div class="topline">
-      <a class="quit" href="#/" aria-label="Quitter la séance">× <span>quitter</span></a>
+      <a class="quit" href="${session.free ? '#/exercices' : '#/'}" aria-label="Quitter la séance">× <span>quitter</span></a>
       <div class="track"><span style="width:${pct}%"></span></div>
       <span class="count">${session.i + 1}<i>/</i>${total}</span>
     </div>
@@ -416,13 +536,13 @@ function renderSession() {
     ${needsKeys(it.type) ? accentKeys() : ''}
     <p class="keys-hint">Entrée = valider / continuer${['choice', 'choiceRev'].includes(it.type) ? ' · 1–4 = choisir' : ''}${it.type === 'gender' ? ' · M / F' : ''}</p>
   </section>`;
-  const input = app.querySelector('input.answer');
-  if (input) input.focus();
+  const input = app.querySelector('.answer, .copy-in.req');
+  if (input && it.type !== 'intro') input.focus();
   if (S.settings.autoSpeak && ['intro', 'choice', 'dictation'].includes(it.type)) speak(it.type === 'dictation' ? w.fr : w.fr);
   if (it.type === 'build') bindBuild();
 }
 
-const needsKeys = t => ['recall', 'cloze', 'dictation'].includes(t);
+const needsKeys = t => ['recall', 'cloze', 'dictation', 'intro', 'translate', 'copy'].includes(t);
 
 function labelFor(it) {
   return {
@@ -434,6 +554,8 @@ function labelFor(it) {
     build: 'Réutiliser · 组句',
     gender: 'Le ou la ? · 阴阳性',
     dictation: 'Dictée · 听写',
+    translate: 'Traduire · 整句翻译',
+    copy: 'Recopier · 抄写',
   }[it.type];
 }
 
@@ -467,9 +589,26 @@ function askHtml(it) {
         <p class="kind-line"><span class="kind">${k[0]}</span> ${k[1]}</p>
         <p class="mean-big">${esc(meaning(w))}</p>
         <p class="mean-alt">${esc(meaningAlt(w))}</p>
-        <div class="example"><p class="ex">${highlight(w.ex)} ${sayBtn(plainSentence(w.ex), 'Écouter la phrase')}</p><p class="tr">${esc(w.tr)}</p></div>
-        <div class="actions"><button class="btn" data-act="next">Je l’ai vu <span aria-hidden="true">→</span></button></div>
+        <div class="example"><p class="ex">${sentenceHtml(w)} ${sayBtn(plainSentence(w.ex), 'Écouter la phrase')}</p><p class="tr">${esc(w.tr)}</p>
+          <p class="tip">把鼠标移到例句里的任何一个词上可以看翻译；不认识就点「标为重点」，以后例句里它后面会一直写上（翻译）。</p></div>
+        ${copyBox(w, false)}
+        <div class="actions"><button class="btn" data-act="next">Je l’ai vu <span aria-hidden="true">→</span></button>${starButton(w.id)}</div>
         <span class="hand margin">à retenir</span>`;
+    case 'copy':
+      return `
+        <div class="word"><span class="fr">${esc(w.fr)}</span>${sayBtn(w.fr)}</div>
+        <p class="mean-alt">${esc(meaning(w))}</p>
+        <div class="example"><p class="ex">${sentenceHtml(w)} ${sayBtn(plainSentence(w.ex), 'Écouter la phrase')}</p><p class="tr">${esc(w.tr)}</p></div>
+        ${copyBox(w, true)}
+        <div class="actions"><button class="btn" data-act="copy-done" disabled>Continuer <span aria-hidden="true">→</span></button><button class="link" data-act="skip">跳过</button></div>`;
+    case 'translate':
+      return `
+        <p class="mean-big small">${esc(w.tr)}</p>
+        <p class="kind-line">把整句翻译成法语。提示词：<span class="kind">${esc(w.fr)}</span> ${esc(meaning(w))}</p>
+        <form class="answer-form" autocomplete="off">
+          <textarea class="answer long" rows="3" spellcheck="false" autocapitalize="sentences" lang="fr" placeholder="Écrivez la phrase en français…" aria-label="Votre traduction"></textarea>
+          <div class="actions"><button class="btn" type="submit">Valider</button><button class="link" type="button" data-act="skip">je ne sais pas</button><span class="hint-line">Entrée = valider · Maj+Entrée = nouvelle ligne</span></div>
+        </form>`;
     case 'choice': {
       const opts = shuffle([w, ...distractors(w, 3, 'zh')]);
       it.opts = opts.map(o => o.id);
@@ -492,9 +631,8 @@ function askHtml(it) {
         <p class="kind-line"><span class="kind">${isNoun(w.kind) ? 'n.' : k[0]}</span> ${isNoun(w.kind) ? '名词 — 连冠词一起写（le / la / l’ / les / un / une）' : k[1]}</p>
         ${answerForm('Écrivez en français…')}`;
     case 'cloze': {
-      const p = clozeParts(w.ex);
       return `
-        <p class="ex cloze-line">${esc(p.before)}<span class="blank">${'_'.repeat(Math.max(4, Math.min(14, p.answer.length)))}</span>${esc(p.after)}</p>
+        <p class="ex cloze-line">${sentenceHtml(w, { blank: true })}</p>
         <p class="tr">${esc(w.tr)}</p>
         <p class="kind-line"><span class="kind">${k[0]}</span> ${esc(meaning(w))} <button class="link" type="button" data-act="hint">提示首字母</button></p>
         ${answerForm('Le mot manquant…')}`;
@@ -533,6 +671,42 @@ function askHtml(it) {
   }
 }
 
+function copyBox(w, required) {
+  const row = (label, target, multi) => `
+    <label class="copy-row">
+      <span class="cl">${label}</span>
+      ${
+        multi
+          ? `<textarea class="copy-in${required ? ' req' : ''}" rows="2" spellcheck="false" lang="fr" data-copy="${esc(target)}" placeholder="${esc(target)}"></textarea>`
+          : `<input class="copy-in${required ? ' req' : ''}" type="text" spellcheck="false" autocapitalize="off" lang="fr" data-copy="${esc(target)}" placeholder="${esc(target)}">`
+      }
+      <span class="cs" aria-live="polite"></span>
+    </label>`;
+  return `<div class="copybox${required ? ' required' : ''}">
+    <p class="kicker">Recopier · ${required ? '抄写：单词和例句各抄一遍' : '在这里抄一遍（可选）'}</p>
+    ${row('单词', w.fr, false)}
+    ${row('例句', plainSentence(w.ex), true)}
+  </div>`;
+}
+
+function updateCopy(el) {
+  const p = copyProgress(el.value, el.dataset.copy);
+  const row = el.closest('.copy-row');
+  const cs = row.querySelector('.cs');
+  row.classList.toggle('ok', p.done);
+  row.classList.toggle('err', p.wrongAt >= 0);
+  if (p.done) cs.innerHTML = `${tickMark()}<span>抄对了</span>`;
+  else if (p.wrongAt >= 0) cs.textContent = `第 ${p.wrongAt + 1} 个字应为「${p.expectedChar === ' ' ? '空格' : p.expectedChar}」`;
+  else cs.textContent = el.value ? `${p.matched} / ${p.total}` : '';
+  requestAnimationFrame(() => cs.querySelectorAll('.mark').forEach(m => m.classList.add('on')));
+  const box = el.closest('.copybox');
+  if (box && box.classList.contains('required')) {
+    const all = [...box.querySelectorAll('.copy-in')].every(x => copyProgress(x.value, x.dataset.copy).done);
+    const b = app.querySelector('[data-act="copy-done"]');
+    if (b) b.disabled = !all;
+  }
+}
+
 function answerForm(ph) {
   return `<form class="answer-form" autocomplete="off">
     <input class="answer" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" lang="fr" placeholder="${ph}" aria-label="Votre réponse">
@@ -549,6 +723,7 @@ function accentKeys() {
 
 function expectedFor(it) {
   if (it.type === 'cloze') return clozeParts(it.w.ex).answer;
+  if (it.type === 'translate' || it.type === 'copy') return plainSentence(it.w.ex);
   return it.w.fr;
 }
 
@@ -562,6 +737,7 @@ const VERDICT = {
   wrong: ['Pas encore.', '再看一眼'],
   skip: ['On le revoit bientôt.', '没关系，等会儿再考一次'],
   right: ['Exact.', '答对了'],
+  close: ['Presque.', '大意对了，有几个词和参考句不一样'],
 };
 
 function submit(typed, { skipped = false, ok: forced = null } = {}) {
@@ -571,13 +747,20 @@ function submit(typed, { skipped = false, ok: forced = null } = {}) {
   let res;
   if (forced !== null) res = { ok: forced, verdict: forced ? 'right' : 'wrong' };
   else if (skipped) res = { ok: false, verdict: 'skip' };
-  else res = checkAnswer(typed, expectedFor(it), { kind: it.type === 'cloze' ? '' : w.kind, strictAccents: S.settings.strictAccents });
+  else if (it.type === 'translate') res = checkSentence(typed, w.ex, { strictAccents: S.settings.strictAccents });
+  else res = checkAnswer(typed, expectedFor(it), { kind: it.type === 'cloze' || w.kind === 'w' ? '' : w.kind, strictAccents: S.settings.strictAccents });
   const vkey = res.verdict === 'accent' && !res.ok ? 'accentStrict' : res.verdict;
   session.state = 'shown';
 
   // Grade: only marked items move the schedule; learning steps just requeue on a miss.
   let prev = null;
-  if (it.graded && !it.retry) {
+  if (session.free && !it.retry && it.type !== 'copy') {
+    const lt = logToday();
+    if (res.ok) lt.right += 1;
+    else lt.wrong += 1;
+    persist();
+  }
+  if (it.graded && !it.retry && !session.free) {
     prev = S.cards[w.id] ? { ...S.cards[w.id] } : null;
     S.cards[w.id] = grade(S.cards[w.id], res.ok, today());
     const lt = logToday();
@@ -605,7 +788,9 @@ function requeue(it) {
   // word cannot hold the session hostage. It comes back tomorrow either way.
   session.tries[it.w.id] = (session.tries[it.w.id] || 0) + 1;
   if (session.tries[it.w.id] > 2) return;
-  const again = { w: it.w, type: can('recall') ? 'recall' : 'choiceRev', graded: it.graded, retry: true, fresh: it.fresh };
+  const typedTypes = ['recall', 'cloze', 'translate', 'dictation'];
+  const type = session.free && typedTypes.includes(it.type) ? it.type : can('recall') || session.free ? 'recall' : 'choiceRev';
+  const again = { w: it.w, type, graded: it.graded, retry: true, fresh: it.fresh };
   const pos = Math.min(session.q.length, session.i + 4);
   session.q.splice(pos, 0, again);
 }
@@ -620,18 +805,26 @@ function showFeedback(it, typed, vkey) {
   const [fr, zh] = VERDICT[vkey] || VERDICT.wrong;
   const exp = expectedFor(it);
   const showDiff = typed && !ok && ['recall', 'cloze', 'dictation'].includes(it.type);
+  const sentDiff =
+    it.type === 'translate' && typed && !ok
+      ? `<p class="yours">你写的：${esc(typed)}</p><p class="diff sent">参考：${wordDiff(typed, w.ex)
+          .map(x => (x.s === 'same' ? esc(x.w) : `<b class="diff">${esc(x.w)}</b>`))
+          .join(' ')}</p>`
+      : '';
   const diff = showDiff
     ? `<p class="diff">${diffMarks(typed, exp)
         .map(m => (m.s === 'same' ? esc(m.ch) : `<b class="${m.s}">${esc(m.ch)}</b>`))
         .join('')}</p>`
     : '';
-  const canOverride = it.graded && !it.retry && !ok && ['recall', 'cloze', 'dictation', 'build'].includes(it.type) && typed;
+  const canOverride = (it.graded || session.free) && !it.retry && !ok && ['recall', 'cloze', 'dictation', 'build', 'translate'].includes(it.type) && typed;
+  const real = !!byId[w.id];
   fb.innerHTML = `
     <div class="verdict">${ok ? tickMark() : crossMark()}<div><p class="v-fr">${fr}</p><p class="v-zh">${zh}</p></div></div>
     <div class="reveal">
-      <p class="answer-line"><span class="fr">${esc(w.fr)}</span> ${sayBtn(w.fr)} <span class="kind">${KIND[w.kind][0]}</span> <span class="mean">${esc(w.zh)} · <i>${esc(w.en)}</i></span></p>
-      ${diff}
-      <p class="ex">${highlight(w.ex)} ${sayBtn(plainSentence(w.ex), 'Écouter la phrase')}</p>
+      <p class="answer-line"><span class="fr">${esc(w.fr)}</span> ${sayBtn(w.fr)} <span class="kind">${KIND[w.kind][0]}</span> ${real ? starButton(w.id) : ''} <span class="mean">${esc(w.zh)} · <i>${esc(w.en)}</i></span></p>
+      ${diff}${sentDiff}
+      <p class="ex">${sentenceHtml(w)} ${sayBtn(plainSentence(w.ex), 'Écouter la phrase')}</p>
+      <p class="tr">${esc(w.tr)}</p>
     </div>
     <div class="actions">
       <button class="btn" data-act="next">Continuer <span aria-hidden="true">→</span></button>
@@ -639,13 +832,14 @@ function showFeedback(it, typed, vkey) {
     </div>`;
   requestAnimationFrame(() => requestAnimationFrame(() => fb.classList.add('on')));
   fb.querySelector('[data-act="next"]').focus({ preventScroll: true });
-  if (it.type !== 'intro' && S.settings.autoSpeak && (!ok || it.type === 'cloze' || it.type === 'build')) speak(it.type === 'build' ? plainSentence(w.ex) : w.fr);
+  if (it.type !== 'intro' && S.settings.autoSpeak && (!ok || ['cloze', 'build', 'translate'].includes(it.type)))
+    speak(['build', 'translate'].includes(it.type) ? plainSentence(w.ex) : w.fr);
 }
 
 function override() {
   const it = current();
   if (!it.res || it.res.ok) return;
-  S.cards[it.w.id] = grade(it.prev, true, today());
+  if (!session.free) S.cards[it.w.id] = grade(it.prev, true, today());
   const lt = logToday();
   lt.wrong = Math.max(0, lt.wrong - 1);
   lt.right += 1;
@@ -660,6 +854,7 @@ function override() {
 }
 
 function next() {
+  hidePop();
   session.i += 1;
   session.state = 'ask';
   renderSession();
@@ -668,30 +863,31 @@ function next() {
 function renderSummary() {
   setView('session');
   const lt = logToday();
-  lt.done = true;
+  if (!session.free) lt.done = true;
   persist();
-  const missed = [...session.missed].map(id => byId[id]);
+  const free = session.free;
+  const missed = [...session.missed].map(id => byId[id] || pseudoById[id]).filter(Boolean);
   const total = session.right + session.wrong;
   const acc = total ? Math.round((session.right / total) * 100) : 100;
   app.innerHTML = `
   <section class="summary">
     <article class="sheet card">
-      <p class="kicker">Séance terminée · ${new Date().toLocaleDateString('fr-CA')}</p>
+      <p class="kicker">${free ? 'Exercice terminé · 自由练习' : 'Séance terminée'} · ${new Date().toLocaleDateString('fr-CA')}</p>
       <h1 class="medium-heading">Bien joué<em class="accent">.</em></h1>
       <div class="nums">
-        <div><span class="big">${session.freshCount}</span><span class="lab">nouveaux<br><i>新词</i></span></div>
+        ${free ? `<div><span class="big">${session.q.filter(x => !x.retry).length}</span><span class="lab">mots<br><i>练习的词</i></span></div>` : `<div><span class="big">${session.freshCount}</span><span class="lab">nouveaux<br><i>新词</i></span></div>`}
         <div><span class="big">${session.right}</span><span class="lab">réponses justes<br><i>答对</i></span></div>
         <div><span class="big">${acc}<small>%</small></span><span class="lab">précision<br><i>正确率</i></span></div>
       </div>
       ${
         missed.length
-          ? `<p class="kicker">À revoir demain · 明天会再考</p>
+          ? `<p class="kicker">${free ? 'À retravailler · 还要再练' : 'À revoir demain · 明天会再考'}</p>
              <ul class="missed">${missed.map(w => `<li><span class="fr">${esc(w.fr)}</span> ${sayBtn(w.fr)} <span class="mean">${esc(w.zh)}</span></li>`).join('')}</ul>`
           : '<p class="note">一个都没错。</p>'
       }
       <figure class="month-wrap draw">${monthSketch(last30())}</figure>
       <p class="hand sign">à demain&nbsp;!</p>
-      <div class="actions"><a class="btn" href="#/">Retour au carnet</a><button class="btn ghost" data-act="more">再学 5 个新词</button></div>
+      <div class="actions"><a class="btn" href="#/">Retour au carnet</a>${free ? '<a class="btn ghost" href="#/exercices">再练一组</a>' : '<button class="btn ghost" data-act="more">再学 5 个新词</button><a class="btn ghost" href="#/exercices">自由练习</a>'}</div>
     </article>
   </section>`;
   session = null;
@@ -731,13 +927,14 @@ document.addEventListener('click', e => {
   if (t.dataset.say) return void speak(t.dataset.say);
   if (t.dataset.saySlow) return void speak(t.dataset.saySlow, { rate: 0.6 });
   if (t.dataset.key) {
-    const inp = app.querySelector('input.answer');
+    const inp = lastField && document.contains(lastField) ? lastField : app.querySelector('.answer');
     if (!inp || inp.disabled) return;
     const s = inp.selectionStart ?? inp.value.length;
     const c = t.dataset.key === '’' ? "'" : t.dataset.key;
     inp.value = inp.value.slice(0, s) + c + inp.value.slice(inp.selectionEnd ?? s);
     inp.focus();
     inp.setSelectionRange(s + 1, s + 1);
+    if (inp.classList.contains('copy-in')) updateCopy(inp);
     return;
   }
   if (t.dataset.pick && session && session.state === 'ask') {
@@ -770,6 +967,18 @@ document.addEventListener('click', e => {
       return next();
     case 'skip':
       return submit('', { skipped: true });
+    case 'copy-done':
+      return submit('', { ok: true });
+    case 'unmark': {
+      delete S.marked[t.dataset.key.replace(/’/g, "'")];
+      persist();
+      return renderPractice();
+    }
+    case 'unstar': {
+      delete S.starred[t.dataset.id];
+      persist();
+      return renderPractice();
+    }
     case 'override':
       return override();
     case 'check-build':
@@ -825,14 +1034,30 @@ document.addEventListener('change', async e => {
 document.addEventListener('submit', e => {
   if (!e.target.classList.contains('answer-form')) return;
   e.preventDefault();
-  const v = e.target.querySelector('input').value;
+  const v = e.target.querySelector('.answer').value;
   if (!v.trim()) return;
   submit(v);
+});
+
+let lastField = null;
+document.addEventListener('focusin', e => {
+  if (e.target.matches && e.target.matches('.answer, .copy-in')) lastField = e.target;
+});
+document.addEventListener('input', e => {
+  if (e.target.classList && e.target.classList.contains('copy-in')) updateCopy(e.target);
 });
 
 document.addEventListener('keydown', e => {
   if (!session || document.body.dataset.view !== 'session') return;
   const inInput = e.target.matches && e.target.matches('input, select, textarea');
+  if (e.key === 'Enter' && !e.shiftKey && e.target.matches && e.target.matches('textarea.answer') && session.state === 'ask') {
+    e.preventDefault();
+    return e.target.form.requestSubmit();
+  }
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('.copy-in')) {
+    if (e.target.tagName === 'TEXTAREA') e.preventDefault();
+    return;
+  }
   if (e.key === 'Enter' && session.state === 'shown') {
     e.preventDefault();
     return next();
@@ -865,9 +1090,19 @@ document.addEventListener('keydown', e => {
 
 // Read-only hook for the browser tests (only with ?test in the URL).
 if (/[?&]test\b/.test(location.search)) {
-  window.__frvc = { current: () => session && current() && { type: current().type, expected: expectedFor(current()), w: current().w, toks: current().toks } };
+  window.__frvc = { current: () => session && current() && { type: current().type, expected: expectedFor(current()), w: current().w, toks: current().toks }, state: () => S };
 }
 
 initSpeech();
+S.marked = S.marked || {};
+S.starred = S.starred || {};
+initGloss({
+  state: () => S,
+  persist,
+  speak,
+  byId,
+  today,
+  onChange: () => document.body.dataset.view === 'practice' && renderPractice(),
+});
 route();
 startBirds();

@@ -12,16 +12,26 @@ export const DEFAULT_SETTINGS = {
   strictAccents: false,
   autoSpeak: true,
   themes: [], // empty = all themes, in order
-  exercises: ['recall', 'cloze', 'build', 'choice', 'gender', 'dictation'],
+  exercises: ['recall', 'cloze', 'build', 'choice', 'gender', 'dictation', 'translate'],
 };
 
-const empty = () => ({ version: 1, cards: {}, log: {}, settings: { ...DEFAULT_SETTINGS } });
+const VERSION = 2;
+const empty = () => ({ version: VERSION, cards: {}, log: {}, marked: {}, starred: {}, settings: { ...DEFAULT_SETTINGS } });
+
+/* v1 → v2: the whole-sentence translation exercise is new; switch it on for existing users. */
+function migrate(data) {
+  if ((data.version || 1) < 2 && data.settings && Array.isArray(data.settings.exercises) && !data.settings.exercises.includes('translate')) {
+    data.settings.exercises = [...data.settings.exercises, 'translate'];
+  }
+  data.version = VERSION;
+  return data;
+}
 
 export function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return empty();
-    const data = JSON.parse(raw);
+    const data = migrate(JSON.parse(raw));
     return {
       ...empty(),
       ...data,
@@ -55,6 +65,7 @@ export function exportFile(state) {
 export async function importFile(file) {
   const data = JSON.parse(await file.text());
   if (!data || typeof data !== 'object' || !data.cards || !data.log) throw new Error('Not an FRvc progress file');
+  migrate(data);
   return { ...empty(), ...data, settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) } };
 }
 
