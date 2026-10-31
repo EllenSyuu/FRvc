@@ -84,7 +84,7 @@ export default {
     { t: 'fill', s: "C'est exactement ce [[dont]] je rêvais.", hint: 'rêver de', zh: '这正是我梦寐以求的。', alt: [] },
     { t: 'transform', from: "J'ai lu un article. Cet article parle de l'immigration.", task: '用关系代词合并成一句', to: ["J'ai lu un article qui parle de l'immigration."], zh: '我读了一篇讲移民的文章。' },
     { t: 'transform', from: "C'est un projet. Je suis très fier de ce projet.", task: '用关系代词合并成一句', to: ["C'est un projet dont je suis très fier."], zh: '这是一个让我很自豪的项目。' },
-    { t: 'transform', from: "Voici la maison. Mes grands-parents ont vécu dans cette maison.", task: '用关系代词合并成一句', to: ['Voici la maison où mes grands-parents ont vécu.', 'Voici la maison où ont vécu mes grands-parents.'], zh: '这就是我祖父母住过的房子。' },
+    { t: 'transform', from: "Voici la maison. Mes grands-parents ont vécu dans cette maison.", task: '用关系代词合并成一句', to: ['Voici la maison où mes grands-parents ont vécu.', 'Voici la maison où ont vécu mes grands-parents.', 'Voici la maison dans laquelle mes grands-parents ont vécu.', 'Voici la maison dans laquelle ont vécu mes grands-parents.'], zh: '这就是我祖父母住过的房子。' },
     { t: 'choice', s: "C'est toi qui ___ raison.", o: ['as', 'a', 'ont'], a: 0, why: 'qui 的先行词是 toi，动词用第二人称单数。', zh: '是你说得对。' },
   ],
 };

@@ -14,7 +14,7 @@ export default {
         rows: [
           ['-tion / -sion', 'la question, la décision', '—'],
           ['-té', 'la santé, la société', "l'été, le côté (m.)"],
-          ['-ure', 'la culture, la voiture', 'le futur (m.)'],
+          ['-ure', 'la culture, la voiture', 'le murmure, le mercure (m.)'],
           ['-ence / -ance', 'la différence, la chance', 'le silence (m.)'],
           ['-ette', 'la recette, la fourchette', 'le squelette (m.)'],
         ],

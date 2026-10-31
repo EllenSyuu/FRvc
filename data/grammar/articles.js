@@ -49,7 +49,7 @@ export default {
     },
     {
       h: '国家、星期、身体部位',
-      p: '**国家**名前用定冠词：*le Canada, la France, les États-Unis*（以 -e 结尾的多为阴性，*le Mexique* 是例外）。**星期**：*lundi* 表示“（这个）星期一”，*le lundi* 表示“每个星期一”。**身体部位**通常用定冠词而不是物主形容词，因为反身动词或间接代词已经说明是谁的：*il s\'est cassé **le** bras*，*j\'ai mal à **la** tête*。',
+      p: '**国家**名前用定冠词：*le Canada, la France, les États-Unis*（以 -e 结尾的多为阴性，*le Mexique, le Cambodge* 是常见例外）。**星期**：*lundi* 表示“（这个）星期一”，*le lundi* 表示“每个星期一”。**身体部位**通常用定冠词而不是物主形容词，因为反身动词或间接代词已经说明是谁的：*il s\'est cassé **le** bras*，*j\'ai mal à **la** tête*。',
       ex: [
         ['Le Canada est un grand pays, et la France est plus petite.', '加拿大是个大国，法国要小一些。'],
         ['Le samedi, je fais du sport ; mais samedi prochain, je travaille.', '每周六我做运动；但下周六我要上班。'],
@@ -73,7 +73,7 @@ export default {
     { t: 'choice', s: "Je n'aime pas ___ hiver à Montréal, il fait trop froid.", o: ["l'", "d'", 'de'], a: 0, why: '定冠词在否定句中不变：aimer + l\'hiver。', zh: '我不喜欢蒙特利尔的冬天，太冷了。' },
     { t: 'fill', s: "Elle a beaucoup [[d']]amis au cégep.", hint: 'beaucoup + ?', zh: '她在 cégep（魁省大学预科）有很多朋友。', alt: [] },
     { t: 'transform', from: "J'achète du lait.", task: '改成否定句（ne … pas）', to: ["Je n'achète pas de lait."], zh: '我不买牛奶。' },
-    { t: 'transform', from: 'Nous avons des questions.', task: '改成否定句（ne … pas）', to: ["Nous n'avons pas de questions."], zh: '我们没有问题。' },
+    { t: 'transform', from: 'Nous avons des questions.', task: '改成否定句（ne … pas）', to: ["Nous n'avons pas de questions.", "Nous n'avons pas de question."], zh: '我们没有问题。' },
     { t: 'choice', s: "Ce n'est pas ___ bonne idée.", o: ['une', 'de', "d'"], a: 0, why: 'être 的否定句冠词不变：c\'est une idée → ce n\'est pas une idée。', zh: '这不是个好主意。' },
     { t: 'choice', s: "___ dimanche, la bibliothèque est fermée.", o: ['Le', 'Un', 'Du'], a: 0, why: '“每个星期天”用 le dimanche。', zh: '每周日图书馆都关门。' },
     { t: 'fill', s: "Après le match, j'avais mal [[aux]] jambes.", hint: 'à + les', zh: '比赛后我腿疼。', alt: [] },

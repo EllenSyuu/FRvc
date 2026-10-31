@@ -95,7 +95,7 @@ export default {
     { t: 'choice', s: "Les difficultés ___ nous faisons face sont nombreuses.", o: ['auxquelles', 'auxquels', 'dont'], a: 0, why: 'faire face à + difficultés（阴复）→ auxquelles。', zh: '我们面临的困难很多。' },
     { t: 'transform', from: "J'ai écrit avec ce stylo. Ce stylo ne marche plus.", task: '用 介词 + lequel 合并成一句（以 Le stylo 开头）', to: ["Le stylo avec lequel j'ai écrit ne marche plus."], zh: '我用来写字的那支笔不能用了。' },
     { t: 'transform', from: "Je compte sur cette amie. Elle est toujours là pour moi.", task: '用 介词 + qui 合并成一句（以 L\'amie 开头）', to: ["L'amie sur qui je compte est toujours là pour moi.", "L'amie sur laquelle je compte est toujours là pour moi."], zh: '我依靠的那个朋友总是在我身边。' },
-    { t: 'transform', from: "Il y a un grand arbre au milieu du jardin. Les enfants jouent autour de cet arbre.", task: '合并成一句（以 Il y a un grand arbre au milieu du jardin, 开头）', to: ['Il y a un grand arbre au milieu du jardin, autour duquel les enfants jouent.'], zh: '花园中央有一棵大树，孩子们在树周围玩耍。' },
+    { t: 'transform', from: "Il y a un grand arbre au milieu du jardin. Les enfants jouent autour de cet arbre.", task: '合并成一句（以 Il y a un grand arbre au milieu du jardin, 开头）', to: ['Il y a un grand arbre au milieu du jardin, autour duquel les enfants jouent.', 'Il y a un grand arbre au milieu du jardin, autour duquel jouent les enfants.'], zh: '花园中央有一棵大树，孩子们在树周围玩耍。' },
     { t: 'fill', s: "Les raisons pour [[lesquelles]] elle a refusé ce poste restent un mystère.", hint: 'raisons：阴性复数', zh: '她拒绝这个职位的原因仍然是个谜。', alt: [] },
   ],
 };

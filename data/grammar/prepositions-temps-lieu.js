@@ -70,7 +70,7 @@ export default {
     { t: 'choice', s: "L'été dernier, j'ai travaillé dans un camp ___ six semaines.", o: ['pendant', 'depuis', 'dans'], a: 0, why: '过去已结束的一段时长 → pendant。', zh: '去年夏天我在一个夏令营工作了六个星期。' },
     { t: 'fill', s: "Nous sommes arrivés au Canada [[il y a]] trois ans.", hint: '“……以前”', zh: '我们三年前来到加拿大。', alt: [] },
     { t: 'choice', s: "Dépêche-toi ! Le film commence ___ cinq minutes.", o: ['dans', 'il y a', 'en'], a: 0, why: '从现在算起五分钟后 → dans。', zh: '快点！电影五分钟后开始。' },
-    { t: 'choice', s: "Il a écrit ce rapport ___ une seule soirée.", o: ['en', 'dans', 'pendant'], a: 0, why: '完成一件事所用的时间 → en。', zh: '他只用一个晚上就写完了这份报告。' },
+    { t: 'choice', s: "Il a écrit ce rapport ___ une seule soirée.", o: ['en', 'dans', 'depuis'], a: 0, why: '完成一件事所用的时间 → en。', zh: '他只用一个晚上就写完了这份报告。' },
     { t: 'fill', s: "Les arbres fleurissent [[au]] printemps.", hint: '春天例外', zh: '树木在春天开花。', alt: [] },
     { t: 'fill', s: "Ma meilleure amie habite [[à]] Vancouver.", hint: '城市', zh: '我最好的朋友住在温哥华。', alt: [] },
     { t: 'choice', s: "L'année prochaine, je vais étudier ___ Belgique.", o: ['en', 'au', 'à'], a: 0, why: 'la Belgique 是阴性国家 → en。', zh: '明年我要去比利时读书。' },
@@ -81,7 +81,7 @@ export default {
     { t: 'choice', s: "Les enfants jouent ___ le jardin.", o: ['dans', 'chez', 'en'], a: 0, why: '在有边界的空间里面 → dans。', zh: '孩子们在花园里玩。' },
     { t: 'fill', s: "Ce vin vient [[du]] Chili.", hint: 'de + le Chili', zh: '这瓶酒来自智利。', alt: [] },
     { t: 'transform', from: "J'habite à Laval. J'ai commencé à habiter à Laval en 2021.", task: '用 depuis 合并成一句（以 J\'habite à Laval 开头）', to: ["J'habite à Laval depuis 2021."], zh: '我从 2021 年起住在拉瓦尔。' },
-    { t: 'choice', s: "Je ne l'ai pas vu ___ son mariage.", o: ['depuis', 'pendant', 'il y a'], a: 0, why: '从婚礼那时起到现在都没见过 → depuis + 事件。', zh: '自从他结婚后我就没见过他。' },
+    { t: 'choice', s: "Je ne l'ai pas vu ___ son mariage.", o: ['depuis', 'en', 'il y a'], a: 0, why: '从婚礼那时起到现在都没见过 → depuis + 事件。', zh: '自从他结婚后我就没见过他。' },
     { t: 'choice', s: "Il travaille ___ Mexique ___ un an.", o: ['au … depuis', 'en … depuis', 'au … il y a'], a: 0, why: 'le Mexique 阳性 → au；现在时 + 持续 → depuis。', zh: '他在墨西哥工作一年了。' },
   ],
 };
