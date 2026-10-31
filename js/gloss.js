@@ -101,11 +101,27 @@ function ensurePop() {
     if (!b) return;
     if (b.dataset.popSay) ctx.speak(b.dataset.popSay);
     if (b.dataset.popMark !== undefined) toggleFor(current);
+    if (b.dataset.popUnphrase) {
+      removePhrase(b.dataset.popUnphrase.replace(/’/g, "'"));
+      hide();
+    }
   });
   return pop;
 }
 
+function phraseBlock(el) {
+  const k = el.dataset.phrase;
+  const ph = k && S().phrases && S().phrases[k];
+  if (!ph || ph.del) return '';
+  return `<div class="pphrase"><p class="kicker">词组 · locution</p><p class="pf small">${esc(ph.fr)} <button type="button" class="say" data-pop-say="${esc(ph.fr)}" aria-label="Écouter">${speakerIcon()}</button></p>
+    ${ph.zh ? `<p class="pz">${esc(ph.zh)}</p>` : ''}<button type="button" class="link" data-pop-unphrase="${esc(k)}">移除这个词组</button></div>`;
+}
+
 function contentFor(el) {
+  return phraseBlock(el) + wordContent(el);
+}
+
+function wordContent(el) {
   if (el.dataset.target) {
     const w = ctx.byId[el.dataset.target];
     const st = isStarred(w.id);
@@ -225,6 +241,122 @@ export const starButton = id =>
     isStarred(id) ? '★ <span>重点</span>' : '☆ <span>标为重点</span>'
   }</button>`;
 
+/* ------------------------------------------------------------------ phrases */
+/*
+ * Select a few words in any example sentence or passage to keep them as a phrase to learn
+ * ("avoir du mal à", "au fur et à mesure"). Phrases are underlined wherever they appear,
+ * listed on the practice page, practised like words, and synced (tombstones on removal).
+ */
+const SENT_SEL = '.ex, .d-sent';
+const phraseKey = t => t.toLowerCase().replace(/’/g, "'").replace(/\s+/g, ' ').trim();
+const plainOf = el => {
+  const c = el.cloneNode(true);
+  c.querySelectorAll('.gl, button, .blank, input').forEach(x => x.remove());
+  return c.textContent.replace(/\s+/g, ' ').trim();
+};
+const livePhrases = () => Object.entries(S().phrases || {}).filter(([, v]) => v && !v.del);
+
+export function removePhrase(k) {
+  const st = S();
+  st.phrases = st.phrases || {};
+  st.phrases[k] = { del: true, t: Date.now() };
+  ctx.persist();
+  paintPhrases(document);
+  ctx.onChange && ctx.onChange();
+}
+
+export function paintPhrases(root = document) {
+  const list = livePhrases().map(([k, v]) => [k, tokenize(v.fr).filter(t => t.word).map(t => t.key)]);
+  root.querySelectorAll(SENT_SEL).forEach(ex => {
+    ex.querySelectorAll('.in-phrase').forEach(e => {
+      e.classList.remove('in-phrase', 'ph-start', 'ph-end');
+      delete e.dataset.phrase;
+    });
+    if (!list.length) return;
+    // The sentence as a sequence of word keys, each pointing at its element.
+    const seq = [];
+    ex.querySelectorAll('.tk, mark.target').forEach(el => {
+      if (el.matches('.tk')) seq.push({ key: (el.dataset.k || '').replace(/’/g, "'"), el });
+      else tokenize(el.textContent).filter(t => t.word).forEach(t => seq.push({ key: t.key, el }));
+    });
+    for (const [k, keys] of list) {
+      if (!keys.length) continue;
+      for (let i = 0; i + keys.length <= seq.length; i++) {
+        if (keys.every((kk, j) => seq[i + j].key === kk)) {
+          const els = [...new Set(seq.slice(i, i + keys.length).map(x => x.el))];
+          els.forEach(el => {
+            el.classList.add('in-phrase');
+            el.dataset.phrase = k;
+          });
+          els[0].classList.add('ph-start');
+          els[els.length - 1].classList.add('ph-end');
+        }
+      }
+    }
+  });
+}
+
+let phrasePop = null;
+let pending = null;
+
+function hidePhrasePop() {
+  if (phrasePop) phrasePop.hidden = true;
+  pending = null;
+}
+
+function offerPhrase() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return hidePhrasePop();
+  const range = sel.getRangeAt(0);
+  const host = n => (n.nodeType === 1 ? n : n.parentElement);
+  const a = host(range.startContainer) && host(range.startContainer).closest(SENT_SEL);
+  const b = host(range.endContainer) && host(range.endContainer).closest(SENT_SEL);
+  if (!a || a !== b || a.closest('.review')) return hidePhrasePop();
+  const text = sel.toString().replace(/（[^）]*）/g, ' ').replace(/[«»“”]/g, '').replace(/\s+/g, ' ').trim().replace(/^[,.;:!?]+|[,.;:!?]+$/g, '').trim();
+  const words = tokenize(text).filter(t => t.word);
+  if (words.length < 2 || words.length > 14) return hidePhrasePop();
+  const auto = words.map(t => (GLOSS[t.key] ? shortZh(GLOSS[t.key].zh) : t.text)).join(' ');
+  const firstTk = a.querySelector('.tk, mark.target');
+  pending = { fr: text, s: plainOf(a), from: firstTk ? firstTk.dataset.w || firstTk.dataset.target || '' : '' };
+  if (!phrasePop) {
+    phrasePop = document.createElement('form');
+    phrasePop.id = 'phrase-pop';
+    phrasePop.autocomplete = 'off';
+    document.body.append(phrasePop);
+    phrasePop.addEventListener('submit', e => {
+      e.preventDefault();
+      if (!pending) return;
+      const st = S();
+      st.phrases = st.phrases || {};
+      const zh = phrasePop.querySelector('input').value.trim();
+      st.phrases[phraseKey(pending.fr)] = { fr: pending.fr, zh, s: pending.s, from: pending.from, at: ctx.today(), t: Date.now() };
+      ctx.persist();
+      window.getSelection().removeAllRanges();
+      hidePhrasePop();
+      paintPhrases(document);
+      ctx.onChange && ctx.onChange();
+    });
+    phrasePop.addEventListener('click', e => {
+      if (e.target.closest('[data-cancel]')) {
+        window.getSelection().removeAllRanges();
+        hidePhrasePop();
+      }
+    });
+  }
+  const exists = S().phrases && S().phrases[phraseKey(text)] && !S().phrases[phraseKey(text)].del;
+  phrasePop.innerHTML = `<p class="kicker">${exists ? '已经存过这个词组' : '存为词组，拿来背'}</p>
+    <p class="pf small" lang="fr">${esc(text)}</p>
+    <input name="zh" placeholder="意思（可选）：${esc(auto)}" aria-label="词组的意思">
+    <div class="row"><button class="btn" type="submit">★ 存为词组</button><button class="link" type="button" data-cancel>取消</button></div>`;
+  const r = range.getBoundingClientRect();
+  const w = Math.min(300, window.innerWidth - 24);
+  phrasePop.style.width = `${w}px`;
+  phrasePop.style.left = `${Math.max(12, Math.min(window.innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + window.scrollX}px`;
+  phrasePop.style.top = `${r.bottom + 12 + window.scrollY}px`;
+  phrasePop.hidden = false;
+  hide();
+}
+
 /* ------------------------------------------------------------------ wiring */
 
 export function initGloss(c) {
@@ -274,4 +406,27 @@ export function initGloss(c) {
   }, true);
   window.addEventListener('scroll', () => !pinned && hide(), { passive: true });
   window.addEventListener('hashchange', hide);
+  window.addEventListener('hashchange', hidePhrasePop);
+  // Phrase capture: after a mouse selection, a touch selection (long press) or Shift+arrows.
+  let selTimer = 0;
+  const later = () => {
+    clearTimeout(selTimer);
+    selTimer = setTimeout(offerPhrase, 30);
+  };
+  document.addEventListener('mouseup', e => !(e.target.closest && e.target.closest('#phrase-pop')) && later());
+  document.addEventListener('keyup', e => e.shiftKey && later());
+  document.addEventListener('selectionchange', () => {
+    if (!('ontouchstart' in window)) return;
+    clearTimeout(selTimer);
+    selTimer = setTimeout(offerPhrase, 600);
+  });
+  // Underline saved phrases whenever new sentences are drawn.
+  const main = document.getElementById('app');
+  let paintTimer = 0;
+  if (main && 'MutationObserver' in window) {
+    new MutationObserver(() => {
+      clearTimeout(paintTimer);
+      paintTimer = setTimeout(() => paintPhrases(main), 40);
+    }).observe(main, { childList: true, subtree: true });
+  }
 }

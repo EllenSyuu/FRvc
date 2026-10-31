@@ -5,10 +5,11 @@ import * as store from './store.js';
 import { initSpeech, speak, hasFrenchVoice } from './speech.js';
 import { heroPlate, themeIcon, tickMark, crossMark, speakerIcon, monthSketch, startBirds } from './art.js';
 import { GLOSS, tokenize } from '../data/glossary.js';
-import { initGloss, sentenceHtml, starButton, refresh as refreshGloss, shortZh, hide as hidePop } from './gloss.js';
+import { initGloss, sentenceHtml, starButton, refresh as refreshGloss, shortZh, hide as hidePop, removePhrase } from './gloss.js';
 import { aggregateLog, liveKeys } from './merge.js';
 import * as sync from './sync.js';
 import { initPwa, installState, promptInstall } from './pwa.js';
+import { progressBoard, animateBoard } from './progress.js';
 import { initLessons, renderGrammarList, renderLesson, renderReadingList, renderPassage, handleLessonClick, handleLessonKey, LESSONS, PASSAGES } from './lessons.js';
 
 /* ---------------------------------------------------------------- state */
@@ -89,17 +90,6 @@ window.addEventListener('hashchange', route);
 
 /* ---------------------------------------------------------------- home */
 
-function stats() {
-  let learned = 0;
-  let learning = 0;
-  for (const w of WORDS) {
-    const c = S.cards[w.id];
-    if (isLearned(c)) learned++;
-    else if (!isNew(c)) learning++;
-  }
-  return { learned, learning, unseen: WORDS.length - learned - learning };
-}
-
 function todayPlan() {
   const lt = S.log[today()];
   const left = Math.max(0, S.settings.dailyNew - (lt ? lt.new : 0));
@@ -125,10 +115,9 @@ function last30() {
 function renderHome() {
   setView('home');
   const plan = todayPlan();
-  const st = stats();
   const sk = streak(S.log, today());
   const nothing = plan.reviews.length + plan.fresh.length === 0;
-  const keyCount = liveKeys(S.starred).length + liveKeys(S.marked).length;
+  const keyCount = liveKeys(S.starred).length + liveKeys(S.marked).length + liveKeys(S.phrases).length;
   const boxes = Array.from({ length: MAX_BOX + 1 }, (_, b) => WORDS.filter(w => (S.cards[w.id] ? S.cards[w.id].box : -1) === b).length);
   const boxMax = Math.max(1, ...boxes);
   const themeNames = S.settings.themes.length
@@ -173,17 +162,10 @@ function renderHome() {
 
   <section id="progres">
     <h2 class="numbered-heading draw">Ma progression</h2>
-    <p class="chapter-lede">每个词在 0–7 号盒子之间移动：答对升一格，下次复习推迟到 1、2、4、7、15、30、60 天后；答错回到 1 号盒子，明天再见。到 5 号盒子算“掌握”。</p>
-    <div class="progress-grid">
-      <div class="engraved">
-        <div><span class="big">${st.learned}</span><span class="lab">acquis · 已掌握</span></div>
-        <div><span class="big">${st.learning}</span><span class="lab">en cours · 学习中</span></div>
-        <div><span class="big">${st.unseen}</span><span class="lab">à découvrir · 未学</span></div>
-      </div>
-      <figure class="month-wrap draw">
-        ${monthSketch(last30())}
-        <figcaption>Les 30 derniers jours — 斜线越密练得越多，打勾表示当天清单完成。</figcaption>
-      </figure>
+    <p class="chapter-lede">每个词在 0–7 号盒子之间移动：答对升一格，下次复习推迟到 1、2、4、7、15、30、60 天后；答错回到 1 号盒子。学过 = 至少见过一次；熟悉 = 3 号盒子以上；掌握 = 5 号盒子以上（大约连续两周都答对）。</p>
+    ${progressBoard({ S, WORDS, THEMES, today: today(), streak: sk, goal: Math.max(20, (S.settings.dailyNew || 15) * 3), lessons: LESSONS.length, passages: PASSAGES.length })}
+    <details class="pg-boxes">
+      <summary>Boîtes de Leitner · 每个盒子里有多少词</summary>
       <figure class="boxes draw" aria-label="Words per review box">
         ${boxes
           .map(
@@ -192,9 +174,8 @@ function renderHome() {
               <span class="n">${n}</span><span class="b">${b}</span></div>`,
           )
           .join('')}
-        <figcaption>Boîtes de Leitner · 每个盒子里的词数</figcaption>
       </figure>
-    </div>
+    </details>
   </section>
 
   <section id="etudier">
@@ -223,13 +204,14 @@ function renderHome() {
         const ws = WORDS.filter(w => w.theme === t.id);
         const l = ws.filter(w => isLearned(S.cards[w.id])).length;
         const s = ws.filter(w => !isNew(S.cards[w.id])).length;
+        const f = ws.filter(w => S.cards[w.id] && S.cards[w.id].box >= 3 && S.cards[w.id].box < LEARNED_BOX).length;
         return `<a class="theme-card draw" href="#/theme/${t.id}" style="--d:${(i * 0.05).toFixed(2)}s">
           <span class="num">${String(i + 1).padStart(2, '0')}</span>
           ${themeIcon(t.icon)}
           <span class="tname">${esc(t.fr)}</span>
           <span class="tsub">${esc(t.zh)}</span>
-          <span class="meter"><span class="seen" style="width:${(s / ws.length) * 100}%"></span><span class="got" style="width:${(l / ws.length) * 100}%"></span></span>
-          <span class="tcount">${l} / ${ws.length} acquis</span>
+          <span class="meter" title="学过 ${s} · 熟悉 ${f} · 掌握 ${l}"><span class="seen" style="width:${(s / ws.length) * 100}%"></span><span class="fam" style="width:${((f + l) / ws.length) * 100}%"></span><span class="got" style="width:${(l / ws.length) * 100}%"></span></span>
+          <span class="tcount">${s ? `学过 <b>${s}</b>/${ws.length}${f ? ` · 熟悉 ${f}` : ''}${l ? ` · 掌握 ${l}` : ''}` : `${ws.length} mots`}</span>
         </a>`;
       }).join('')}
     </div>
@@ -246,6 +228,7 @@ function renderHome() {
   </section>`;
   inkIn();
   observeDraw();
+  animateBoard(app);
 }
 
 /* Headings, theme cards and the month sketch ink themselves in when scrolled to. */
@@ -357,7 +340,7 @@ function renderSettings() {
     ${installCard()}
     <div class="card form">
       <p class="kicker">Données · 数据</p>
-      <p>${sync.config() ? '进度保存在这台设备上，并同步到你的私人 Gist。导出的文件可以留作备份。' : '没有连接同步时，进度只保存在这台设备的浏览器里。也可以导出文件，再在另一台设备导入。'}${hasFrenchVoice() ? '' : '<br><b>提示：</b>这个浏览器没有找到法语语音，听写题会自动跳过。'}</p>
+      <p>${sync.config() ? '进度保存在这台设备上，并同步到你的私人 Gist。导出的文件可以留作备份。' : '没有连接同步时，进度只保存在这台设备的浏览器里。也可以导出文件，再在另一台设备导入。'}<br><b>网站是公开的，但进度不是：</b>每个人的进度只存在自己的浏览器里；同步只读写持有令牌的人自己的私密 Gist。别人打开这个网站，看到的是一份空白的新进度，碰不到你的。${hasFrenchVoice() ? '' : '<br><b>提示：</b>这个浏览器没有找到法语语音，听写题会自动跳过。'}</p>
       <div class="actions">
         <button class="btn ghost" data-act="export">导出进度</button>
         <label class="btn ghost file">导入进度<input type="file" accept="application/json" data-act="import" hidden></label>
@@ -418,12 +401,26 @@ function markSource(m) {
   return '';
 }
 
+/* A saved phrase as a practice item: the sentence it came from, with the phrase as the gap. */
+function phraseWord(key) {
+  const ph = S.phrases[key];
+  if (!ph || ph.del || !ph.s) return null;
+  const at = ph.s.toLowerCase().indexOf(ph.fr.toLowerCase());
+  if (at < 0) return null;
+  const ex = `${ph.s.slice(0, at)}[[${ph.s.slice(at, at + ph.fr.length)}]]${ph.s.slice(at + ph.fr.length)}`;
+  const src = byId[ph.from];
+  const w = { id: `p:${key}`, theme: src ? src.theme : THEMES[0].id, fr: ph.fr, kind: 'loc', zh: ph.zh || '（你没写意思）', en: '', ex, tr: src && src.ex.replace(/\[\[|\]\]/g, '') === ph.s ? src.tr : '' };
+  pseudoById[w.id] = w;
+  return w;
+}
+
 function practicePools() {
   const learnedToday = WORDS.filter(w => S.cards[w.id] && S.cards[w.id].last === today());
   const seen = WORDS.filter(w => !isNew(S.cards[w.id]));
   const starred = WORDS.filter(w => liveKeys(S.starred).includes(w.id));
   const marked = liveKeys(S.marked).map(pseudoWord).filter(Boolean);
-  return { today: learnedToday, seen, key: [...starred, ...marked], all: WORDS };
+  const phrases = liveKeys(S.phrases).map(phraseWord).filter(Boolean);
+  return { today: learnedToday, seen, key: [...starred, ...marked, ...phrases], all: WORDS };
 }
 
 const PRACTICE_MODES = [
@@ -445,6 +442,7 @@ function renderPractice() {
     `<label class="chip"><input type="radio" name="scope" value="${v}" ${last.scope === v ? 'checked' : ''} ${n === 0 ? 'disabled' : ''}><span>${label} <i>${n}</i></span></label>`;
   const starred = WORDS.filter(w => liveKeys(S.starred).includes(w.id));
   const marked = liveKeys(S.marked).filter(k => GLOSS[k]);
+  const phrases = liveKeys(S.phrases).map(k => [k, S.phrases[k]]);
   app.innerHTML = `
   <section class="practice">
     <a class="back" href="#/">← Retour</a>
@@ -474,12 +472,13 @@ function renderPractice() {
     <div class="card form keylist">
       <p class="kicker">Mes mots difficiles · 我的重点</p>
       ${
-        starred.length + marked.length
+        starred.length + marked.length + phrases.length
           ? `<ul>
+              ${phrases.map(([k, ph]) => `<li class="phrase-row"><span class="fr">${esc(ph.fr)}</span> <span class="mean">${esc(ph.zh || '')}</span><button type="button" class="x" data-act="unphrase" data-key="${esc(k)}" aria-label="移除词组">×</button></li>`).join('')}
               ${starred.map(w => `<li><span class="fr">${esc(w.fr)}</span> <span class="mean">${esc(w.zh)}</span><button type="button" class="x" data-act="unstar" data-id="${w.id}" aria-label="取消重点">×</button></li>`).join('')}
               ${marked.map(k => `<li><span class="fr">${esc(k)}</span><span class="gl">（${esc(shortZh(GLOSS[k].zh))}）</span> <span class="mean from">${esc(markSource(S.marked[k]))}</span><button type="button" class="x" data-act="unmark" data-key="${esc(k)}" aria-label="取消重点">×</button></li>`).join('')}
             </ul>`
-          : '<p class="empty">还没有。学习时把鼠标移到例句里的词上（手机上点一下），选「标为重点」；或者点单词旁的 ☆。标过的词会出现在这里，并且在所有例句里一直带着（翻译）。</p>'
+          : '<p class="empty">还没有。学习时把鼠标移到例句里的词上（手机上点一下），选「标为重点」；或者点单词旁的 ☆。想背一个词组，就在例句或阅读里用鼠标划选几个词（手机上长按选择），点「存为词组」。</p>'
       }
     </div>
   </section>`;
@@ -495,6 +494,7 @@ function renderPractice() {
     const kinds = {
       gender: w => isNoun(w.kind),
       dictation: () => hasFrenchVoice(),
+      translate: w => !!w.tr,
     };
     if (kinds[opt.mode]) words = words.filter(kinds[opt.mode]);
     const warn = e.target.querySelector('.warn');
@@ -506,8 +506,8 @@ function renderPractice() {
     words = shuffle(words);
     if (opt.count !== 'all') words = words.slice(0, Number(opt.count));
     const mixPool = w =>
-      ['recall', 'cloze', 'translate', 'build', 'copy']
-        .concat(isNoun(w.kind) ? ['gender'] : [], hasFrenchVoice() ? ['dictation'] : []);
+      ['recall', 'cloze', 'build', 'copy']
+        .concat(w.tr ? ['translate'] : [], isNoun(w.kind) ? ['gender'] : [], hasFrenchVoice() ? ['dictation'] : []);
     const queue = words.map(w => ({ w, type: opt.mode === 'mix' ? pickOne(mixPool(w)) : opt.mode }));
     startSession(null, { queue, free: true });
     if (session && location.hash !== '#/session') history.replaceState(null, '', '#/session');
@@ -651,7 +651,7 @@ function startSession(override, { queue = null, free = false } = {}) {
     location.hash = '#/';
     return;
   }
-  session = { q, i: 0, right: 0, wrong: 0, missed: new Set(), state: 'ask', freshCount: plan.fresh.length, introduced: new Set(), tries: {}, free };
+  session = { q, i: 0, right: 0, wrong: 0, missed: new Set(), state: 'ask', freshCount: plan.fresh.length, introduced: new Set(), tries: {}, free, history: [], view: null };
   renderSession();
 }
 
@@ -672,16 +672,20 @@ function renderSession() {
     <div class="topline">
       <a class="quit" href="${session.free ? '#/exercices' : '#/'}" aria-label="Quitter la séance">× <span>quitter</span></a>
       <div class="track"><span style="width:${pct}%"></span></div>
-      <span class="count">${session.i + 1}<i>/</i>${total}</span>
+      <span class="hist-nav"><button type="button" class="hist" data-hist="back" aria-label="回看上一题（←）" ${session.history.length ? '' : 'disabled'}>‹</button><span class="count">${session.i + 1}<i>/</i>${total}</span><button type="button" class="hist" data-hist="fwd" aria-label="回到当前题（→）" disabled>›</button></span>
     </div>
-    <article class="sheet card ${it.type}">
-      <p class="kicker">${labelFor(it)} · ${esc(t.fr)}</p>
-      <div class="ask">${askHtml(it)}</div>
-      <div class="feedback" aria-live="polite"></div>
-    </article>
-    ${needsKeys(it.type) ? accentKeys() : ''}
-    <p class="keys-hint">Entrée = valider / continuer${['choice', 'choiceRev'].includes(it.type) ? ' · 1–4 = choisir' : ''}${it.type === 'gender' ? ' · M / F' : ''}</p>
+    <div class="review" hidden></div>
+    <div class="live">
+      <article class="sheet card ${it.type}">
+        <p class="kicker">${labelFor(it)} · ${esc(t.fr)}</p>
+        <div class="ask">${askHtml(it)}</div>
+        <div class="feedback" aria-live="polite"></div>
+      </article>
+      ${needsKeys(it.type) ? accentKeys() : ''}
+    </div>
+    <p class="keys-hint">Entrée / Espace = valider · continuer${['choice', 'choiceRev'].includes(it.type) ? ' · 1–4 = choisir' : ''}${it.type === 'gender' ? ' · M / F' : ''} · ← revoir la question précédente</p>
   </section>`;
+  session.view = null;
   const input = app.querySelector('.answer, .copy-in.req');
   if (input && it.type !== 'intro') input.focus();
   if (S.settings.autoSpeak && ['intro', 'choice', 'dictation'].includes(it.type)) speak(it.type === 'dictation' ? w.fr : w.fr);
@@ -1001,10 +1005,46 @@ function override() {
 
 function next() {
   hidePop();
+  // Keep a read-only copy of the card as it was answered, for ← (look back).
+  const sheet = app.querySelector('.live .sheet');
+  if (sheet) session.history.push(sheet.outerHTML);
   session.i += 1;
   session.state = 'ask';
   renderSession();
 }
+
+/* Look back at answered cards without losing the current one. */
+function showHistory(k) {
+  const review = app.querySelector('.review');
+  const live = app.querySelector('.live');
+  if (!review || !live) return;
+  hidePop();
+  const n = session.history.length;
+  if (k === null || k >= n) {
+    session.view = null;
+    review.hidden = true;
+    review.innerHTML = '';
+    live.hidden = false;
+  } else {
+    session.view = Math.max(0, k);
+    review.innerHTML = `<p class="review-tag"><span class="hand">revoir</span> 第 ${session.view + 1} 题 · 只读 · 按 → 或空格回到当前题</p>${session.history[session.view]}`;
+    review.querySelectorAll('input, textarea, button:not(.say)').forEach(b => {
+      b.disabled = true;
+      b.tabIndex = -1;
+    });
+    review.querySelectorAll('.feedback').forEach(f => f.classList.add('on'));
+    review.hidden = false;
+    live.hidden = true;
+  }
+  const back = app.querySelector('[data-hist="back"]');
+  const fwd = app.querySelector('[data-hist="fwd"]');
+  if (back) back.disabled = !n || session.view === 0;
+  if (fwd) fwd.disabled = session.view === null;
+  const count = app.querySelector('.hist-nav .count');
+  if (count) count.classList.toggle('reviewing', session.view !== null);
+}
+const histBack = () => session && session.history.length && showHistory(session.view === null ? session.history.length - 1 : session.view - 1);
+const histFwd = () => session && session.view !== null && showHistory(session.view + 1);
 
 function renderSummary() {
   setView('session');
@@ -1072,6 +1112,7 @@ document.addEventListener('click', e => {
   if (!t) return;
   if (t.matches('a[data-jump]')) e.preventDefault();
   if (handleLessonClick(t)) return;
+  if (t.dataset.hist) return void (t.dataset.hist === 'back' ? histBack() : histFwd());
   if (t.dataset.say) return void speak(t.dataset.say);
   if (t.dataset.saySlow) return void speak(t.dataset.saySlow, { rate: 0.6 });
   if (t.dataset.key) {
@@ -1122,6 +1163,9 @@ document.addEventListener('click', e => {
       persist();
       return renderPractice();
     }
+    case 'unphrase':
+      removePhrase(t.dataset.key.replace(/’/g, "'"));
+      return renderPractice();
     case 'unstar': {
       S.starred[t.dataset.id] = { del: true, t: Date.now() };
       persist();
@@ -1226,6 +1270,27 @@ document.addEventListener('keydown', e => {
   if (document.body.dataset.view === 'grammar' && handleLessonKey(e)) return;
   if (!session || document.body.dataset.view !== 'session') return;
   const inInput = e.target.matches && e.target.matches('input, select, textarea');
+  const typing = inInput && !e.target.disabled;
+  // Looking back: → / Enter / Space / Esc return to the current card, ← goes further back.
+  if (session.view !== null) {
+    if (['ArrowRight', 'Enter', ' ', 'Escape'].includes(e.key)) {
+      e.preventDefault();
+      return e.key === 'ArrowRight' ? histFwd() : showHistory(null);
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      return histBack();
+    }
+    return;
+  }
+  if (e.key === 'ArrowLeft' && !typing && session.history.length) {
+    e.preventDefault();
+    return histBack();
+  }
+  if (e.key === ' ' && !typing && (session.state === 'shown' || (current() && current().type === 'intro'))) {
+    e.preventDefault();
+    return next();
+  }
   if (e.key === 'Enter' && !e.shiftKey && e.target.matches && e.target.matches('textarea.answer') && session.state === 'ask') {
     e.preventDefault();
     return e.target.form.requestSubmit();

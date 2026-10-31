@@ -8,7 +8,7 @@
  *
  * Progress itself is never cached here: it lives in localStorage and the private Gist.
  */
-const VERSION = 'frvc-v4';
+const VERSION = 'frvc-v5';
 const SHELL = [
   './',
   'index.html',
@@ -25,6 +25,7 @@ const SHELL = [
   'js/store.js',
   'js/sync.js',
   'js/lessons.js',
+  'js/progress.js',
   'data/deck.js',
   'data/glossary.js',
   'assets/grain.png',

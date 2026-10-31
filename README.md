@@ -55,9 +55,16 @@ The schedule is a Leitner system — the paper flash-card boxes, made exact:
 | Next review after (days) | 1 | 2 | 4 | 7 | 15 | 30 | 60 |
 
 A right answer moves a word up one box, a wrong one sends it back to box 1. From box 5 on
-a word counts as *acquis* (learned). The home page shows the box distribution, the last
-30 days as a hatched sketch (denser hatching = more practice, a tick = the day's plan
-finished) and the current streak.
+a word counts as *acquis* (mastered, about two weeks of right answers); from box 3 it is
+*familiar*. Theme cards count all three tiers — met, familiar, mastered — so a theme you
+have just worked through shows *学过 20/20* instead of an empty *0/20 acquis*.
+
+*Ma progression* on the home page is drawn like the rest of the notebook: the current
+streak as an ink seal with the record under it, a ring for the share of the deck met and
+mastered, the last seven days against a daily goal (a tick when the plan was finished),
+twenty weeks as a calendar, coverage of the core, B1 and B2 themes, and a sheet of
+milestone stamps (words met, streaks, grammar lessons, readings) with the next one named.
+Numbers count up and stamps press down when the section scrolls into view.
 
 ## Ways to check a word
 
@@ -90,6 +97,22 @@ also puts that deck entry on the 重点 list.
 
 New-word cards have an optional copying box: type the word and the example sentence out
 once, and the first wrong character is pointed out as you type.
+
+### Phrases
+
+Select a few words in any example sentence, grammar example or reading passage (long-press
+on a phone) and **★ 存为词组** keeps the phrase, with a meaning you can write in.
+Saved phrases are underlined wherever that sentence appears, and they join *my key words*
+in free practice as fill-in-the-blank items: the phrase is the gap in its own sentence.
+
+### Keyboard
+
+| Key | In a session or a grammar drill |
+|---|---|
+| Enter / Space | check, then go on to the next question |
+| 1–4 | pick an option; M / F for gender |
+| ← | look back at the questions already answered (read-only) |
+| → / Esc | return to the current question |
 
 ## Free practice
 
@@ -222,6 +245,7 @@ js/sync.js          sync through a private Gist
 js/pwa.js, sw.js    installable app, offline support
 manifest.webmanifest
 js/speech.js        pronunciation through the browser's speech synthesis
+js/progress.js      the progress board: streak seal, deck ring, week, 20-week calendar, levels, stamps
 js/art.js           the drawn plate, theme icons, the 30-day sketch, the odd passing gull
 data/deck.js        the first 13 themes; data/vocab/ holds one file per further theme
 data/glossary.js    glosses for every word form; data/gloss/ adds the rest
@@ -236,7 +260,9 @@ tests/              node:test suites for check.js, srs.js, merge.js, the deck an
 
 There is no analytics and no cookie. Without sync, nothing leaves the browser; with sync,
 progress goes only to a private Gist in your own GitHub account. Pronunciation uses the
-voices installed on the device.
+voices installed on the device. The site is public but progress is not shared: every
+visitor starts from an empty notebook in their own browser, and nobody else can read or
+change yours.
 
 ## Design
 

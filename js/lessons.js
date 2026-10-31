@@ -135,7 +135,7 @@ const splitConj = f => {
 const fillGap = (s, o) => (/'$/.test(o) ? s.replace(/___\s*/, o) : s.replace('___', o));
 
 function startDrills(lesson, list) {
-  drill = { lesson, list, i: 0, right: 0, wrong: [], state: 'ask' };
+  drill = { lesson, list, i: 0, right: 0, wrong: [], state: 'ask', history: [], view: null };
   drawDrill();
 }
 
@@ -170,14 +170,19 @@ function drawDrill() {
       <div class="actions"><button class="btn" data-drill="check">Valider</button><button class="link" data-drill="skip">je ne sais pas</button></div>`;
   }
   box.innerHTML = `
-    <div class="topline small"><div class="track"><span style="width:${(i / list.length) * 100}%"></span></div><span class="count">${i + 1}<i>/</i>${list.length}</span></div>
+    <div class="topline small"><div class="track"><span style="width:${(i / list.length) * 100}%"></span></div><span class="hist-nav"><button type="button" class="hist" data-dhist="back" aria-label="回看上一题（←）" ${drill.history.length ? '' : 'disabled'}>‹</button><span class="count">${i + 1}<i>/</i>${list.length}</span><button type="button" class="hist" data-dhist="fwd" aria-label="回到当前题（→）" disabled>›</button></span></div>
+    <div class="review" hidden></div>
+    <div class="live">
     <article class="sheet card drill ${d.t}">
       <p class="kicker">${{ fill: 'Compléter · 填空', choice: 'Choisir · 选择', transform: 'Transformer · 改写', conj: 'Conjuguer · 变位' }[d.t]}</p>
       ${body}
       <div class="feedback" aria-live="polite"></div>
     </article>
-    ${d.t === 'choice' ? '' : ctx.accentKeys()}`;
+    ${d.t === 'choice' ? '' : ctx.accentKeys()}
+    </div>
+    <p class="keys-hint">Entrée / Espace = valider · continuer${d.t === 'choice' ? ' · 1–' + d.o.length + ' = choisir' : ''} · ← revoir</p>`;
   drill.state = 'ask';
+  drill.view = null;
   const first = box.querySelector('.answer');
   if (first && drill.i > 0) first.focus({ preventScroll: true });
 }
@@ -382,17 +387,20 @@ export function handleLessonClick(t) {
     if (a === 'check') checkDrill(false);
     else if (a === 'skip') checkDrill(true);
     else if (a === 'next') {
-      drill.i += 1;
-      drawDrill();
+      drillNext();
       const box = document.getElementById('drill-box');
       if (box && box.getBoundingClientRect().top < 0) box.scrollIntoView({ block: 'start' });
     } else if (a === 'override') {
       drill.right += 1;
       drill.wrong.pop();
-      drill.i += 1;
-      drawDrill();
+      drillNext();
     } else if (a === 'redo') startDrills(drill.lesson, drill.lesson.drills);
     else if (a === 'redo-wrong') startDrills(drill.lesson, drill.wrong);
+    return true;
+  }
+  if (t.dataset.dhist) {
+    if (t.dataset.dhist === 'back') drillHistory(drill.view === null ? drill.history.length - 1 : drill.view - 1);
+    else drillHistory(drill.view + 1);
     return true;
   }
   if (t.dataset.pickI !== undefined && drill && drill.state === 'ask') {
@@ -428,20 +436,82 @@ export function handleLessonClick(t) {
   return false;
 }
 
-/* Enter submits / continues inside a drill. */
-export function handleLessonKey(e) {
-  if (!drill || !document.getElementById('drill-box')) return false;
-  if (e.key !== 'Enter' || e.shiftKey) return false;
-  if (!e.target.closest || !e.target.closest('#drill-box')) return false;
-  e.preventDefault();
-  if (drill.state === 'ask') {
-    const d = drill.list[drill.i];
-    if (d.t !== 'choice') checkDrill(false);
+function drillNext() {
+  const sheet = document.querySelector('#drill-box .live .sheet');
+  if (sheet) drill.history.push(sheet.outerHTML);
+  drill.i += 1;
+  drawDrill();
+}
+
+function drillHistory(k) {
+  const box = document.getElementById('drill-box');
+  const review = box && box.querySelector('.review');
+  const live = box && box.querySelector('.live');
+  if (!review || !live) return;
+  const n = drill.history.length;
+  if (k === null || k >= n) {
+    drill.view = null;
+    review.hidden = true;
+    live.hidden = false;
   } else {
-    drill.i += 1;
-    drawDrill();
+    drill.view = Math.max(0, k);
+    review.innerHTML = `<p class="review-tag"><span class="hand">revoir</span> 第 ${drill.view + 1} 题 · 只读 · 按 → 或空格回到当前题</p>${drill.history[drill.view]}`;
+    review.querySelectorAll('input, textarea, button:not(.say)').forEach(b => (b.disabled = true));
+    review.querySelectorAll('.feedback').forEach(f => f.classList.add('on'));
+    review.hidden = false;
+    live.hidden = true;
   }
-  return true;
+  box.querySelector('[data-dhist="back"]').disabled = !n || drill.view === 0;
+  box.querySelector('[data-dhist="fwd"]').disabled = drill.view === null;
+}
+
+/*
+ * Keys inside the exercises: Enter / Space check the answer or go on, 1–4 choose,
+ * ← looks back at answered drills (read-only), → / Space / Enter return.
+ */
+export function handleLessonKey(e) {
+  const box = document.getElementById('drill-box');
+  if (!drill || !box || drill.i >= drill.list.length) return false;
+  const typing = e.target.matches && e.target.matches('input:not(:disabled), textarea:not(:disabled)');
+  const inBox = e.target.closest && e.target.closest('#drill-box');
+  if (drill.view !== null) {
+    if (['ArrowRight', 'Enter', ' ', 'Escape'].includes(e.key)) {
+      e.preventDefault();
+      drillHistory(e.key === 'ArrowRight' ? drill.view + 1 : null);
+      return true;
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      drillHistory(drill.view - 1);
+      return true;
+    }
+    return false;
+  }
+  if (e.key === 'ArrowLeft' && !typing && drill.history.length) {
+    e.preventDefault();
+    drillHistory(drill.history.length - 1);
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return true;
+  }
+  const d = drill.list[drill.i];
+  if (drill.state === 'ask' && d.t === 'choice' && !typing && /^[1-9]$/.test(e.key) && Number(e.key) <= d.o.length) {
+    e.preventDefault();
+    checkDrill(false, Number(e.key) - 1);
+    return true;
+  }
+  if (e.key === 'Enter' && !e.shiftKey && (inBox || drill.state === 'shown')) {
+    e.preventDefault();
+    if (drill.state === 'ask') {
+      if (d.t !== 'choice') checkDrill(false);
+    } else drillNext();
+    return true;
+  }
+  if (e.key === ' ' && !typing && drill.state === 'shown') {
+    e.preventDefault();
+    drillNext();
+    return true;
+  }
+  return false;
 }
 
 export const lessonCounts = () => ({ lessons: LESSONS.length, passages: PASSAGES.length });

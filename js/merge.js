@@ -10,7 +10,8 @@
  *             grow, so merging takes the newer entry per (day, device) and the day's total
  *             is the sum over devices.
  *   marked,   per key, the most recent change wins; un-marking leaves a tombstone
- *   starred   { del: true, t } so it is not resurrected by the other device's copy.
+ *   starred,  { del: true, t } so it is not resurrected by the other device's copy.
+ *   phrases
  *   grammar,  per lesson / passage, the most recent result wins ({ best, last, t }); the
  *   reading   best score is kept as the larger of the two.
  *   settings  the most recently saved settings win (settingsT).
@@ -97,6 +98,7 @@ export function mergeState(a, b) {
     log: aggregateLog(devlog),
     marked: mergeKeyed(a.marked, b.marked, entryTime, resetAt),
     starred: mergeKeyed(a.starred, b.starred, entryTime, resetAt),
+    phrases: mergeKeyed(a.phrases, b.phrases, entryTime, resetAt),
     grammar: mergeResults(a.grammar, b.grammar, resetAt),
     reading: mergeResults(a.reading, b.reading, resetAt),
     settings: bSet > aSet ? b.settings : a.settings,
@@ -113,6 +115,7 @@ export function syncable(s) {
     devlog: s.devlog || {},
     marked: s.marked || {},
     starred: s.starred || {},
+    phrases: s.phrases || {},
     grammar: s.grammar || {},
     reading: s.reading || {},
     settings: s.settings,

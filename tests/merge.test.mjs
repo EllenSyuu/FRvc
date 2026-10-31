@@ -64,3 +64,10 @@ test('grammar and reading results: latest wins, best score is kept', () => {
   assert.equal(m.grammar.pc1.best, 0.9);
   assert.deepEqual(Object.keys(m.reading).sort(), ['r1', 'r2']);
 });
+
+test('phrases merge like marks: removal on one device sticks', () => {
+  const pc = { ...base(), phrases: { 'avoir du mal à': { fr: 'avoir du mal à', t: 100 }, 'au fur et à mesure': { fr: 'au fur et à mesure', t: 100 } } };
+  const phone = { ...base(), phrases: { 'avoir du mal à': { del: true, t: 200 } } };
+  const m = mergeState(pc, phone);
+  assert.deepEqual(liveKeys(m.phrases), ['au fur et à mesure']);
+});

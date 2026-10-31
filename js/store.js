@@ -16,7 +16,7 @@ export const DEFAULT_SETTINGS = {
 };
 
 const VERSION = 3;
-const empty = () => ({ version: VERSION, cards: {}, devlog: {}, log: {}, marked: {}, starred: {}, grammar: {}, reading: {}, settings: { ...DEFAULT_SETTINGS }, settingsT: 0, resetAt: 0 });
+const empty = () => ({ version: VERSION, cards: {}, devlog: {}, log: {}, marked: {}, starred: {}, phrases: {}, grammar: {}, reading: {}, settings: { ...DEFAULT_SETTINGS }, settingsT: 0, resetAt: 0 });
 
 /* Each browser / installed app gets its own id, so daily counts can be kept per device. */
 export function deviceId() {
