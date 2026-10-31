@@ -44,11 +44,11 @@ export default {
       ],
     },
     {
-      h: '-s 回来了：va-y, donnes-en',
+      h: '-s 回来了：vas-y, donnes-en',
       p: '去掉 -s 的 *tu* 形式，后面紧跟 ***y*** 或 ***en*** 时要把 **-s 加回来**，以便连读：*va* → *vas-y*，*achète* → *achètes-en*。',
       ex: [
         ['Vas-y, tu vas réussir !', '去吧，你会成功的！'],
-        ['Il reste du pain ? Achètes-en, alors.', '还有面包吗？那就买一点吧。'],
+        ["Il n'y a plus de pain ? Achètes-en, alors.", '没有面包了？那就买一点吧。'],
       ],
     },
     {

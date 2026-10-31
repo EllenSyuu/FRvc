@@ -125,9 +125,14 @@ export function renderLesson(id) {
 
 const CONJ_PRON = /^((?:que |qu')?(?:j'|je |tu |il\/elle |il\/elle\/on |il |elle |on |nous |vous |ils\/elles |ils |elles ))(.+)$/i;
 const splitConj = f => {
-  const m = f.match(CONJ_PRON);
-  return m ? [m[1], m[2]] : ['', f];
+  // A form may list accepted variants: "je m'assieds | je m'assois".
+  const alts = f.split('|').map(x => x.trim());
+  const m = alts[0].match(CONJ_PRON);
+  if (!m) return ['', alts.join('|')];
+  return [m[1], alts.map(a => (a.startsWith(m[1]) ? a.slice(m[1].length) : a)).join('|')];
 };
+// Put an option into the gap; an elided option (n', l', qu') joins the next word.
+const fillGap = (s, o) => (/'$/.test(o) ? s.replace(/___\s*/, o) : s.replace('___', o));
 
 function startDrills(lesson, list) {
   drill = { lesson, list, i: 0, right: 0, wrong: [], state: 'ask' };
@@ -159,7 +164,7 @@ function drawDrill() {
       <div class="conj">${d.forms
         .map(f => {
           const [pr, rest] = splitConj(f);
-          return `<label class="conj-row"><span class="pr" lang="fr">${esc(pr.trim())}</span><input class="answer conj-in" data-a="${esc(rest)}" spellcheck="false" autocapitalize="off" autocomplete="off" lang="fr" style="width:${Math.max(8, rest.length + 3)}ch"><span class="cmark"></span></label>`;
+          return `<label class="conj-row"><span class="pr" lang="fr">${esc(pr.trim())}</span><input class="answer conj-in" data-a="${esc(rest)}" spellcheck="false" autocapitalize="off" autocomplete="off" lang="fr" style="width:${Math.max(8, rest.split('|')[0].length + 3)}ch"><span class="cmark"></span></label>`;
         })
         .join('')}</div>
       <div class="actions"><button class="btn" data-drill="check">Valider</button><button class="link" data-drill="skip">je ne sais pas</button></div>`;
@@ -200,7 +205,7 @@ function checkDrill(skipped = false, pick = null) {
       if (k === d.a) b.classList.add('right');
       else if (k === pick) b.classList.add('wrong');
     });
-    answerHtml = `<p class="ex" lang="fr">${esc(d.s.replace('___', d.o[d.a]))} ${say(d.s.replace('___', d.o[d.a]))}</p>`;
+    answerHtml = `<p class="ex" lang="fr">${esc(fillGap(d.s, d.o[d.a]))} ${say(fillGap(d.s, d.o[d.a]))}</p>`;
   } else if (d.t === 'transform') {
     const typed = box.querySelector('.answer').value;
     const results = skipped ? [] : d.to.map(t => checkSentence(typed, t, { strictAccents: strict }));
@@ -212,15 +217,15 @@ function checkDrill(skipped = false, pick = null) {
   } else if (d.t === 'conj') {
     let all = true;
     box.querySelectorAll('.conj-in').forEach(inp => {
-      const res = checkAnswer(inp.value, inp.dataset.a.replace(/’/g, "'"), { strictAccents: strict });
-      const good = !skipped && res.ok;
+      const alts = inp.dataset.a.replace(/’/g, "'").split('|');
+      const good = !skipped && alts.some(a => checkAnswer(inp.value, a, { strictAccents: strict }).ok);
       all = all && good;
       const row = inp.closest('.conj-row');
       row.classList.add(good ? 'ok' : 'bad');
-      if (!good) row.querySelector('.cmark').textContent = inp.dataset.a;
+      if (!good) row.querySelector('.cmark').textContent = inp.dataset.a.split('|').join(' / ');
     });
     ok = all;
-    answerHtml = `<p class="ex" lang="fr">${d.forms.map(esc).join(' · ')}</p>`;
+    answerHtml = `<p class="ex" lang="fr">${d.forms.map(f => esc(f.split('|').map(x => x.trim()).join(' / '))).join(' · ')}</p>`;
   }
   box.querySelectorAll('input, textarea, [data-drill="check"]').forEach(e => (e.disabled = true));
   drill.state = 'shown';

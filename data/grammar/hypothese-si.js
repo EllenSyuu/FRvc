@@ -84,6 +84,6 @@ export default {
     { t: 'choice', s: "Si elles ___ le bus de 8 h, elles seraient déjà là.", o: ['avaient pris', 'auraient pris', 'prendraient'], a: 0, why: '条件在过去（没赶上公交），结果在现在：si + plus-que-parfait，主句 conditionnel présent。', zh: '她们要是坐了 8 点的公交，现在应该已经到了。' },
     { t: 'fill', s: "Si nous nous étions levés plus tôt, nous [[aurions vu]] le lever du soleil.", hint: 'voir，条件式过去时', zh: '要是我们早点起床，就能看到日出了。', alt: [] },
     { t: 'transform', from: "Si je gagnerais à la loterie, je voyagerais partout.", task: '改正句中的错误', to: ['Si je gagnais à la loterie, je voyagerais partout.'], zh: '如果我中了彩票，我会到处旅行。' },
-    { t: 'choice', s: "Je me demande s'il ___ demain.", o: ['neige', 'neigera', 'neigeait'], a: 1, why: '这里的 si 是"是否"（间接疑问），不是假设，所以可以用将来时。', zh: '我在想明天会不会下雪。' },
+    { t: 'choice', s: "Je me demande s'il ___ demain.", o: ['a neigé', 'neigera', 'neigeait'], a: 1, why: '这里的 si 是"是否"（间接疑问），不是假设，所以可以用将来时。', zh: '我在想明天会不会下雪。' },
   ],
 };
