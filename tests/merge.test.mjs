@@ -55,3 +55,12 @@ test('fingerprint ignores key order and derived fields', () => {
   const b = { ...base(), cards: { b: { t: 2, box: 2 }, a: { t: 1, box: 1 } } };
   assert.equal(fingerprint(a), fingerprint(b));
 });
+
+test('grammar and reading results: latest wins, best score is kept', () => {
+  const pc = { ...base(), grammar: { pc1: { best: 0.9, last: 0.9, t: 100 } }, reading: { r1: { best: 4, last: 4, t: 50 } } };
+  const phone = { ...base(), grammar: { pc1: { best: 0.6, last: 0.6, t: 200 } }, reading: { r2: { best: 5, last: 5, t: 60 } } };
+  const m = mergeState(pc, phone);
+  assert.equal(m.grammar.pc1.last, 0.6);
+  assert.equal(m.grammar.pc1.best, 0.9);
+  assert.deepEqual(Object.keys(m.reading).sort(), ['r1', 'r2']);
+});

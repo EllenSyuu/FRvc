@@ -62,6 +62,24 @@ export function sentenceHtml(w, { blank = false, plain = false } = {}) {
   return `${before}${mid}${after}`;
 }
 
+/*
+ * Any French text (grammar examples, reading passages): every word hoverable and markable.
+ * `src` identifies where it comes from ("g:<lesson>", "r:<passage>"), so a word marked here
+ * can be practised later in the very sentence it was found in.
+ */
+const SOURCES = {};
+export function textHtml(text, src) {
+  const sentences = String(text).match(/[^.!?…]+[.!?…»"]*\s*|.+$/g) || [text];
+  return sentences
+    .map((sent, i) => {
+      const id = `${src}#${i}`;
+      SOURCES[id] = sent.trim();
+      return tokenHtml(tokenize(sent), id);
+    })
+    .join('');
+}
+export const sourceSentence = id => SOURCES[id] || null;
+
 /* ------------------------------------------------------------------ popover */
 
 let pop = null;
@@ -155,7 +173,10 @@ function toggleFor(el) {
     st.starred[id] = isStarred(id) ? { del: true, t: now } : { at: ctx.today(), t: now };
   } else {
     const key = keyOf(el);
-    st.marked[key] = isMarked(key) ? { del: true, t: now } : { from: el.dataset.w, at: ctx.today(), t: now };
+    const from = el.dataset.w;
+    st.marked[key] = isMarked(key)
+      ? { del: true, t: now }
+      : { from, at: ctx.today(), t: now, ...(ctx.byId[from] ? {} : { s: SOURCES[from] || '' }) };
   }
   ctx.persist();
   refresh();

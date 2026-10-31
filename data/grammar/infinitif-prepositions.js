@@ -1,0 +1,85 @@
+export default {
+  id: 'infinitif-prepositions',
+  n: 12,
+  fr: "Verbe + infinitif : à, de ou rien",
+  zh: '动词接不定式：用 à、de 还是直接接',
+  level: 'B1',
+  summary: '记住哪些动词直接接不定式、哪些要加 à 或 de，并学会 avant de 和 après avoir/être + 过去分词。',
+  explain: [
+    {
+      h: '直接接不定式的动词',
+      p: '表示**意愿、能力、喜好、运动**的常用动词后面**直接**接不定式，中间没有介词：*vouloir, pouvoir, devoir, savoir, aimer, préférer, détester, espérer, aller, venir, compter, oser, il faut*。',
+      ex: [
+        ['Je préfère travailler le matin.', '我更喜欢上午工作。'],
+        ['Nous comptons déménager en juillet.', '我们打算七月搬家。'],
+        ['Elle sait nager depuis longtemps.', '她很早就会游泳了。'],
+      ],
+    },
+    {
+      h: '动词 + à + 不定式',
+      p: '很多表示**开始、努力、习惯、成功**的动词要加 *à*：*commencer à, continuer à, réussir à, arriver à*（做到）*, apprendre à, aider qqn à, chercher à, hésiter à, s\'habituer à, passer du temps à, inviter qqn à*。',
+      ex: [
+        ['Il a commencé à neiger vers midi.', '中午左右开始下雪了。'],
+        ["J'ai enfin réussi à trouver un logement.", '我终于找到了住处。'],
+        ['Mon fils apprend à conduire.', '我儿子在学开车。'],
+      ],
+    },
+    {
+      h: '动词 + de + 不定式',
+      p: '表示**决定、停止、忘记、尝试、请求**的动词多用 *de*：*décider de, arrêter de, finir de, oublier de, essayer de, refuser de, accepter de, choisir de, éviter de, se souvenir de, avoir besoin de, avoir peur de, demander à qqn de, conseiller à qqn de, permettre à qqn de*。注意最后三个：人前面用 *à*，不定式前面用 *de*。',
+      ex: [
+        ["J'ai décidé de m'inscrire à un cours de français.", '我决定报名上法语课。'],
+        ["Il a arrêté de fumer l'année dernière.", '他去年戒烟了。'],
+        ['Le médecin lui a conseillé de marcher tous les jours.', '医生建议他每天走路。'],
+      ],
+      table: {
+        head: ['直接接', '+ à', '+ de'],
+        rows: [
+          ['vouloir', 'commencer à', 'décider de'],
+          ['pouvoir', 'réussir à', 'arrêter de'],
+          ['aimer', 'apprendre à', 'oublier de'],
+          ['espérer', 'continuer à', 'essayer de'],
+          ['aller', 'hésiter à', 'refuser de'],
+        ],
+      },
+    },
+    {
+      h: 'avant de + 不定式',
+      p: '"在做……之前"用 *avant de* + **不定式现在时**，前提是两个动作主语相同。不能说 *avant que je parte*（同一主语时），也不能漏掉 *de*。',
+      ex: [["Éteins la lumière avant de sortir.", '出门前把灯关掉。']],
+    },
+    {
+      h: 'après + 不定式过去时',
+      p: '"在做完……之后"用 *après* + **不定式过去时**：*avoir* 或 *être* + 过去分词。用 *être* 的动词，过去分词要和主语配合；代词式动词的代词要跟主语保持一致。',
+      ex: [
+        ["Après avoir mangé, nous sommes allés au parc.", '吃完饭后，我们去了公园。'],
+        ['Après être arrivée à Montréal, elle a cherché du travail.', '到了蒙特利尔以后，她开始找工作。'],
+        ['Après nous être reposés, nous avons repris la route.', '休息过后，我们又上路了。'],
+      ],
+    },
+  ],
+  tips: [
+    '中文"开始做""决定做"都没有介词，所以常漏掉：*j\'ai décidé partir* ✗ → *j\'ai décidé de partir* ✓。',
+    '*après* 后面不能直接接不定式现在时：*après manger* ✗（口语偶见）→ *après avoir mangé* ✓。',
+    '*demander*、*conseiller*、*permettre*、*dire* 的结构是 *à qqn de faire qqch*，别和 *aider qqn à faire* 搞混。',
+    '*commencer à* 和 *commencer de* 都存在，但 *commencer à* 更常用，考试中优先用它。',
+  ],
+  drills: [
+    { t: 'choice', s: 'Je voudrais ___ un rendez-vous.', o: ['prendre', 'à prendre', 'de prendre'], a: 0, why: 'vouloir 直接接不定式。', zh: '我想预约一下。' },
+    { t: 'choice', s: 'Il a commencé ___ pleuvoir.', o: ['pour', 'à', '—（不用介词）'], a: 1, why: 'commencer à + 不定式。', zh: '开始下雨了。' },
+    { t: 'choice', s: "N'oublie pas ___ fermer la porte.", o: ['à', 'de', '—（不用介词）'], a: 1, why: 'oublier de + 不定式。', zh: '别忘了关门。' },
+    { t: 'fill', s: "J'ai décidé [[de]] changer d'emploi.", hint: 'à / de / —', zh: '我决定换工作。', alt: [] },
+    { t: 'fill', s: 'Les enfants apprennent [[à]] lire.', hint: 'à / de / —', zh: '孩子们在学认字。', alt: [] },
+    { t: 'fill', s: "Elle a réussi [[à]] obtenir son permis.", hint: 'à / de / —', zh: '她成功拿到了驾照。', alt: [] },
+    { t: 'choice', s: 'Mes amis ont refusé ___ venir avec nous.', o: ['de', 'à', '—（不用介词）'], a: 0, why: 'refuser de + 不定式。', zh: '我的朋友们不肯跟我们一起来。' },
+    { t: 'choice', s: 'Nous espérons ___ vous revoir bientôt.', o: ['de', 'à', '—（不用介词）'], a: 2, why: 'espérer 直接接不定式。', zh: '我们希望很快再见到您。' },
+    { t: 'fill', s: "J'ai demandé à ma collègue [[de]] m'aider.", hint: 'à / de / —', zh: '我请同事帮我。', alt: [] },
+    { t: 'choice', s: "Il m'a aidé ___ porter les boîtes.", o: ['de', 'à', '—（不用介词）'], a: 1, why: 'aider qqn à + 不定式。', zh: '他帮我搬了箱子。' },
+    { t: 'transform', from: 'Je me lave les mains. Ensuite, je mange.', task: '用 avant de 合成一句，以 Je me lave 开头', to: ['Je me lave les mains avant de manger.'], zh: '我饭前洗手。' },
+    { t: 'fill', s: "Après [[avoir fini]] ses études, il est rentré en Chine.", hint: 'finir，不定式过去时', zh: '他完成学业后回了中国。', alt: [] },
+    { t: 'choice', s: 'Après ___ à la gare, elles ont pris un taxi.', o: ['avoir arrivé', 'être arrivées', 'être arrivé'], a: 1, why: 'arriver 用助动词 être，过去分词与主语 elles 配合：être arrivées。', zh: '到了车站后，她们打了一辆出租车。' },
+    { t: 'transform', from: 'Nous avons visité le musée. Puis nous avons dîné.', task: '用 après + 不定式过去时 合成一句', to: ['Après avoir visité le musée, nous avons dîné.'], zh: '参观完博物馆后，我们吃了晚饭。' },
+    { t: 'transform', from: "Il a décidé partir et il a arrêté travailler.", task: '改正句中的两个错误', to: ['Il a décidé de partir et il a arrêté de travailler.'], zh: '他决定离开，并且不再工作了。' },
+    { t: 'choice', s: 'Après ___ levé, il a pris une douche.', o: ['se être', "s'être", 'avoir se'], a: 1, why: '代词式动词的不定式过去时：s\'être + 过去分词（se 在 être 前省音）。', zh: '起床后，他洗了个澡。' },
+  ],
+};

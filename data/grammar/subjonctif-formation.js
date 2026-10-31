@@ -1,0 +1,103 @@
+export default {
+  id: 'subjonctif-formation',
+  n: 10,
+  fr: 'Former le subjonctif',
+  zh: '虚拟式的变位',
+  level: 'B1',
+  summary: '学会虚拟式现在时的规则变位、常见不规则动词，以及虚拟式过去时的构成。',
+  explain: [
+    {
+      h: '规则变位：从 ils 的现在时出发',
+      p: '取直陈式现在时**第三人称复数**（*ils*）的形式，去掉 *-ent*，得到词根，再加词尾 **-e, -es, -e, -ions, -iez, -ent**。这个方法对 -er、-ir、-re 动词都适用：*ils finissent* → *que je finisse*；*ils prennent* → *que je prenne*。',
+      ex: [
+        ['Il faut que je parle à mon voisin.', '我得跟我的邻居谈一谈。'],
+        ['Il faut que tu finisses ce dossier avant vendredi.', '你必须在周五前完成这份文件。'],
+        ["Il faut qu'ils attendent leur tour.", '他们得排队等着。'],
+      ],
+      table: {
+        head: ['人称', 'parler', 'finir', 'attendre'],
+        rows: [
+          ['que je', 'parle', 'finisse', 'attende'],
+          ['que tu', 'parles', 'finisses', 'attendes'],
+          ["qu'il/elle", 'parle', 'finisse', 'attende'],
+          ['que nous', 'parlions', 'finissions', 'attendions'],
+          ['que vous', 'parliez', 'finissiez', 'attendiez'],
+          ["qu'ils/elles", 'parlent', 'finissent', 'attendent'],
+        ],
+      },
+    },
+    {
+      h: '双词根动词：nous 和 vous 用 nous 的词根',
+      p: '有些动词现在时有两个词根（如 *venir*：*ils viennent / nous venons*）。虚拟式里 *nous* 和 *vous* 用**直陈式 nous 形式的词根**，所以 *nous* 和 *vous* 的虚拟式和未完成过去时（imparfait）一模一样。',
+      ex: [
+        ["Il faut que vous preniez le métro.", '你们得坐地铁。'],
+        ['Il faut que nous venions plus tôt.', '我们得早点来。'],
+      ],
+      table: {
+        head: ['动词', 'que je / tu / il / ils', 'que nous / vous'],
+        rows: [
+          ['venir', 'vienne, viennes, vienne, viennent', 'venions, veniez'],
+          ['prendre', 'prenne, prennes, prenne, prennent', 'prenions, preniez'],
+          ['boire', 'boive, boives, boive, boivent', 'buvions, buviez'],
+          ['devoir', 'doive, doives, doive, doivent', 'devions, deviez'],
+          ['voir', 'voie, voies, voie, voient', 'voyions, voyiez'],
+        ],
+      },
+    },
+    {
+      h: '必背的不规则动词',
+      p: '*être* 和 *avoir* 的词尾也不规则。*aller* 和 *vouloir* 有两个词根；*faire*、*pouvoir*、*savoir* 只有一个特殊词根，词尾规则。',
+      table: {
+        head: ['动词', 'que je', 'que tu', "qu'il", 'que nous', 'que vous', "qu'ils"],
+        rows: [
+          ['être', 'sois', 'sois', 'soit', 'soyons', 'soyez', 'soient'],
+          ['avoir', 'aie', 'aies', 'ait', 'ayons', 'ayez', 'aient'],
+          ['aller', 'aille', 'ailles', 'aille', 'allions', 'alliez', 'aillent'],
+          ['faire', 'fasse', 'fasses', 'fasse', 'fassions', 'fassiez', 'fassent'],
+          ['pouvoir', 'puisse', 'puisses', 'puisse', 'puissions', 'puissiez', 'puissent'],
+          ['savoir', 'sache', 'saches', 'sache', 'sachions', 'sachiez', 'sachent'],
+          ['vouloir', 'veuille', 'veuilles', 'veuille', 'voulions', 'vouliez', 'veuillent'],
+        ],
+      },
+      ex: [
+        ['Il faut que tu sois patient.', '你得有耐心。'],
+        ["Il faut qu'elle ait son passeport.", '她必须带着护照。'],
+        ['Il faut que nous fassions les courses.', '我们得去买东西了。'],
+      ],
+    },
+    {
+      h: '虚拟式过去时（subjonctif passé）',
+      p: '构成：**avoir 或 être 的虚拟式现在时 + 过去分词**。它表示一个在主句动作之前（或某个时间点之前）**已经完成**的动作。用 *être* 的动词，过去分词要与主语性数配合。',
+      ex: [
+        ["Je suis content que tu aies réussi ton examen.", '我很高兴你通过了考试。'],
+        ['Il faut que vous soyez rentrés avant minuit.', '你们必须在午夜前回到家。'],
+        ["Je regrette qu'elle soit partie si tôt.", '我很遗憾她这么早就走了。'],
+      ],
+    },
+  ],
+  tips: [
+    '别把 *que j\'aie*（avoir）和 *que j\'aille*（aller）搞混：拼写和发音都不同。',
+    '*que nous soyons*、*que vous ayez* 里没有字母 i：不能写成 *soyions*、*ayiez*。',
+    '*que nous voyions*、*que vous croyiez* 却有 -yi-，因为它们来自规则词根 *voy-*、*croy-* + *-ions/-iez*。',
+    '虚拟式过去时中，用 *être* 的动词要配合：*que Marie soit arrivée*。',
+  ],
+  drills: [
+    { t: 'fill', s: 'Il faut que je [[téléphone]] au propriétaire.', hint: 'téléphoner', zh: '我得给房东打电话。', alt: [] },
+    { t: 'fill', s: 'Il faut que tu [[choisisses]] un cours.', hint: 'choisir', zh: '你得选一门课。', alt: [] },
+    { t: 'fill', s: "Il faut qu'il [[vende]] sa vieille voiture.", hint: 'vendre', zh: '他得把旧车卖掉。', alt: [] },
+    { t: 'conj', verb: 'être', tense: 'subjonctif présent', forms: ['que je sois', 'que tu sois', "qu'il/elle soit", 'que nous soyons', 'que vous soyez', "qu'ils/elles soient"] },
+    { t: 'conj', verb: 'avoir', tense: 'subjonctif présent', forms: ["que j'aie", 'que tu aies', "qu'il/elle ait", 'que nous ayons', 'que vous ayez', "qu'ils/elles aient"] },
+    { t: 'choice', s: 'Il faut que nous ___ à la banque.', o: ['allons', 'aillons', 'allions'], a: 2, why: 'aller 的虚拟式 nous/vous 用 nous 的词根：que nous allions。', zh: '我们得去一趟银行。' },
+    { t: 'fill', s: 'Il faut que vous [[fassiez]] attention.', hint: 'faire', zh: '你们要小心。', alt: [] },
+    { t: 'conj', verb: 'aller', tense: 'subjonctif présent', forms: ["que j'aille", 'que tu ailles', "qu'il/elle aille", 'que nous allions', 'que vous alliez', "qu'ils/elles aillent"] },
+    { t: 'choice', s: "Il faut qu'il ___ la réponse avant demain.", o: ['sait', 'sache', 'saches'], a: 1, why: 'savoir 的虚拟式词根是 sach-，第三人称单数为 qu\'il sache。', zh: '他必须在明天前知道答案。' },
+    { t: 'fill', s: "Il faut qu'elles [[puissent]] se reposer.", hint: 'pouvoir', zh: '得让她们能休息一下。', alt: [] },
+    { t: 'choice', s: 'Il faut que nous ___ patients.', o: ['soyions', 'soyons', 'sommes'], a: 1, why: 'être 的虚拟式 nous 形式是 soyons，没有 i。', zh: '我们得有耐心。' },
+    { t: 'conj', verb: 'vouloir', tense: 'subjonctif présent', forms: ['que je veuille', 'que tu veuilles', "qu'il/elle veuille", 'que nous voulions', 'que vous vouliez', "qu'ils/elles veuillent"] },
+    { t: 'fill', s: 'Il faut que vous [[buviez]] beaucoup d\'eau.', hint: 'boire', zh: '你们得多喝水。', alt: [] },
+    { t: 'choice', s: "Il faut que tu ___ le médecin cette semaine.", o: ['voies', 'vois', 'voyies'], a: 0, why: 'voir 的虚拟式 tu 形式来自 ils voient → que tu voies。', zh: '你这周得去看医生。' },
+    { t: 'fill', s: "Je suis contente que vous [[ayez trouvé]] un appartement.", hint: 'trouver，虚拟式过去时', zh: '我很高兴你们找到了公寓。', alt: [] },
+    { t: 'choice', s: "Je suis étonné qu'elle ne ___ pas encore arrivée.", o: ['soit', 'ait', 'est'], a: 0, why: 'arriver 用助动词 être，虚拟式过去时为 qu\'elle soit arrivée。', zh: '我很惊讶她还没到。' },
+    { t: 'transform', from: 'Tu as fini ton travail. Je suis heureux.', task: '用 Je suis heureux que 合成一句（虚拟式过去时）', to: ['Je suis heureux que tu aies fini ton travail.'], zh: '我很高兴你完成了工作。' },
+  ],
+};

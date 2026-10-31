@@ -9,6 +9,7 @@ import { initGloss, sentenceHtml, starButton, refresh as refreshGloss, shortZh, 
 import { aggregateLog, liveKeys } from './merge.js';
 import * as sync from './sync.js';
 import { initPwa, installState, promptInstall } from './pwa.js';
+import { initLessons, renderGrammarList, renderLesson, renderReadingList, renderPassage, handleLessonClick, handleLessonKey, LESSONS, PASSAGES } from './lessons.js';
 
 /* ---------------------------------------------------------------- state */
 
@@ -80,6 +81,8 @@ function route() {
   if (view === 'theme' && themeById[arg]) return renderTheme(themeById[arg]);
   if (view === 'reglages') return renderSettings();
   if (view === 'exercices') return renderPractice();
+  if (view === 'grammaire') return arg ? renderLesson(arg) : renderGrammarList();
+  if (view === 'lecture') return arg ? renderPassage(arg) : renderReadingList();
   return renderHome();
 }
 window.addEventListener('hashchange', route);
@@ -191,6 +194,24 @@ function renderHome() {
           .join('')}
         <figcaption>Boîtes de Leitner · 每个盒子里的词数</figcaption>
       </figure>
+    </div>
+  </section>
+
+  <section id="etudier">
+    <h2 class="numbered-heading draw">Grammaire &amp; lecture</h2>
+    <div class="study-grid">
+      <a class="study-card draw" href="#/grammaire">
+        ${themeIcon('quill')}
+        <span class="sname">Grammaire</span>
+        <span class="ssub">语法 · ${LESSONS.length} 课，讲解 + 当场批改的练习</span>
+        <span class="sstat">${Object.keys(S.grammar || {}).length} / ${LESSONS.length} 已练</span>
+      </a>
+      <a class="study-card draw" href="#/lecture">
+        ${themeIcon('newspaper')}
+        <span class="sname">Lecture</span>
+        <span class="ssub">阅读理解 · ${PASSAGES.length} 篇 TCF/TEF 风格原创短文</span>
+        <span class="sstat">${Object.keys(S.reading || {}).length} / ${PASSAGES.length} 已读</span>
+      </a>
     </div>
   </section>
 
@@ -374,9 +395,11 @@ function renderSettings() {
 const pseudoById = {};
 function pseudoWord(key) {
   const info = S.marked[key];
-  const src = byId[info && info.from];
   const g = GLOSS[key];
-  if (!src || !g) return null;
+  if (!info || !g) return null;
+  // Marked in a vocabulary example, or in a grammar / reading sentence (info.s).
+  const src = byId[info.from] || (info.s ? { theme: THEMES[0].id, ex: info.s, tr: '', fr: '' } : null);
+  if (!src) return null;
   const toks = tokenize(plainSentence(src.ex));
   const k = toks.findIndex(t => t.word && t.key === key);
   if (k < 0) return null;
@@ -384,6 +407,15 @@ function pseudoWord(key) {
   const w = { id: `g:${key}`, theme: src.theme, fr: toks[k].text.toLowerCase(), kind: 'w', zh: shortZh(g.zh), en: g.en, ex, tr: src.tr };
   pseudoById[w.id] = w;
   return w;
+}
+
+function markSource(m) {
+  if (byId[m.from]) return `见于 ${byId[m.from].fr}`;
+  const [kind, rest] = String(m.from || '').split(':');
+  const id = (rest || '').split('#')[0];
+  if (kind === 'g') return `见于语法 · ${id}`;
+  if (kind === 'r') return `见于阅读 · ${id}`;
+  return '';
 }
 
 function practicePools() {
@@ -445,7 +477,7 @@ function renderPractice() {
         starred.length + marked.length
           ? `<ul>
               ${starred.map(w => `<li><span class="fr">${esc(w.fr)}</span> <span class="mean">${esc(w.zh)}</span><button type="button" class="x" data-act="unstar" data-id="${w.id}" aria-label="取消重点">×</button></li>`).join('')}
-              ${marked.map(k => `<li><span class="fr">${esc(k)}</span><span class="gl">（${esc(shortZh(GLOSS[k].zh))}）</span> <span class="mean from">见于 ${esc(byId[S.marked[k].from] ? byId[S.marked[k].from].fr : '')}</span><button type="button" class="x" data-act="unmark" data-key="${esc(k)}" aria-label="取消重点">×</button></li>`).join('')}
+              ${marked.map(k => `<li><span class="fr">${esc(k)}</span><span class="gl">（${esc(shortZh(GLOSS[k].zh))}）</span> <span class="mean from">${esc(markSource(S.marked[k]))}</span><button type="button" class="x" data-act="unmark" data-key="${esc(k)}" aria-label="取消重点">×</button></li>`).join('')}
             </ul>`
           : '<p class="empty">还没有。学习时把鼠标移到例句里的词上（手机上点一下），选「标为重点」；或者点单词旁的 ☆。标过的词会出现在这里，并且在所有例句里一直带着（翻译）。</p>'
       }
@@ -575,7 +607,7 @@ function applyRemote(merged) {
   S.log = aggregateLog(S.devlog);
   store.save(S);
   const v = document.body.dataset.view;
-  if (v === 'session') return; // never redraw under a question
+  if (v === 'session' || v === 'grammar' || v === 'reading') return; // never redraw under a question
   const active = document.activeElement;
   if (v === 'settings' && active && active.closest && active.closest('form')) return;
   route();
@@ -1036,8 +1068,10 @@ function checkBuild() {
 /* ---------------------------------------------------------------- events */
 
 document.addEventListener('click', e => {
-  const t = e.target.closest('button, [data-act], label.file');
+  const t = e.target.closest('button, [data-act], label.file, a[data-jump]');
   if (!t) return;
+  if (t.matches('a[data-jump]')) e.preventDefault();
+  if (handleLessonClick(t)) return;
   if (t.dataset.say) return void speak(t.dataset.say);
   if (t.dataset.saySlow) return void speak(t.dataset.saySlow, { rate: 0.6 });
   if (t.dataset.key) {
@@ -1189,6 +1223,7 @@ document.addEventListener('input', e => {
 });
 
 document.addEventListener('keydown', e => {
+  if (document.body.dataset.view === 'grammar' && handleLessonKey(e)) return;
   if (!session || document.body.dataset.view !== 'session') return;
   const inInput = e.target.matches && e.target.matches('input, select, textarea');
   if (e.key === 'Enter' && !e.shiftKey && e.target.matches && e.target.matches('textarea.answer') && session.state === 'ask') {
@@ -1238,7 +1273,10 @@ initSpeech();
 S.marked = S.marked || {};
 S.starred = S.starred || {};
 S.devlog = S.devlog || {};
+S.grammar = S.grammar || {};
+S.reading = S.reading || {};
 S.log = aggregateLog(S.devlog);
+initLessons({ app, state: () => S, persist, speak, setView, accentKeys });
 initGloss({
   state: () => S,
   persist,

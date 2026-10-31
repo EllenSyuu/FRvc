@@ -13,10 +13,12 @@ its meaning and marked as one you do not know.
 [![Test and deploy](https://github.com/EllenSyuu/FRvc/actions/workflows/site.yml/badge.svg)](https://github.com/EllenSyuu/FRvc/actions/workflows/site.yml)
 ![No build step](https://img.shields.io/badge/build-none-22314a)
 ![Dependencies: 0](https://img.shields.io/badge/runtime%20dependencies-0-22314a)
-![Words: 260](https://img.shields.io/badge/words-260%20·%2013%20themes-cf602b)
+![Words: 860](https://img.shields.io/badge/words-860%20·%2043%20themes-cf602b)
+![Grammar: 26 lessons](https://img.shields.io/badge/grammar-26%20lessons-22314a)
+![Reading: 12 passages](https://img.shields.io/badge/reading-12%20passages-22314a)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**[Open the notebook](https://ellensyuu.github.io/FRvc/)** · [Why](#why) · [How a day works](#how-a-day-works) · [Exercises](#ways-to-check-a-word) · [Hover to translate](#every-word-hoverable-mark-what-you-do-not-know) · [Free practice](#free-practice) · [Phone app and sync](#phone-app-and-sync-across-devices) · [Answer checking](#answer-checking) · [The deck](#the-deck) · [Run locally](#run-locally)
+**[Open the notebook](https://ellensyuu.github.io/FRvc/)** · [Why](#why) · [How a day works](#how-a-day-works) · [Exercises](#ways-to-check-a-word) · [Hover to translate](#every-word-hoverable-mark-what-you-do-not-know) · [Free practice](#free-practice) · [Grammar and reading](#grammar-and-reading) · [Phone app and sync](#phone-app-and-sync-across-devices) · [Answer checking](#answer-checking) · [The deck](#the-deck) · [Run locally](#run-locally)
 
 </div>
 
@@ -101,6 +103,23 @@ practice counts towards the day's activity but never moves the review schedule.
 
 <img alt="Whole-sentence translation answered with one word missing: the reference sentence is shown with the missing word underlined" src="docs/img/translate.jpg" width="100%">
 
+## Grammar and reading
+
+**Grammaire** — 26 lessons from the present tense to the subjunctive, the passive,
+indirect speech and relative pronouns, grouped A2 / B1 / B2. Each lesson explains the point
+in Chinese with French examples (every word hoverable), tables and the traps Chinese
+speakers fall into, then runs at least 14 drills marked on the spot: fill in the right
+form, choose, rewrite a sentence, conjugate a whole tense. Redo only the ones you missed.
+
+**Lecture** — 12 passages in the style of the TCF / TEF reading tests (an ad, an email, a
+voicemail, a forum thread, rules, articles, an editorial), A2 to B2, each with 5–6
+multiple-choice questions. Every word can be hovered and marked; each paragraph can be
+read aloud or translated. After submitting, each answer says where in the text it is.
+
+All lessons, drills and passages were written for this project; published textbooks were
+used only as a checklist of what an exam syllabus should cover. Best scores sync across
+devices like the rest of the progress.
+
 ## Phone app and sync across devices
 
 FRvc is an installable web app (PWA): on a phone, *Add to Home Screen* (Safari) or
@@ -152,11 +171,15 @@ button (我其实答对了) lets you overrule the checker when you typed a valid
 
 ## The deck
 
-260 words and expressions in 13 themes — the topic areas that keep coming back in the
-TCF and TEF Canada written and spoken tasks: work, housing, health, environment,
-technology, education, transport and the city, immigration and integration, money,
-culture and leisure, daily life, administration, and a final set of connectors for
-giving an opinion (*en revanche*, *par conséquent*, *bien que* …). Usage follows Canadian
+860 words and expressions in 43 themes. The first 13 are the topic areas that keep coming
+back in the TCF and TEF Canada written and spoken tasks (work, housing, health,
+environment, technology, education, transport, immigration, money, culture, daily life,
+administration, giving an opinion); 30 more go deeper, B1 → B2: the body and medical
+care, emotions and relationships, sport, cooking, clothing, the home, shops and services,
+travel, the arts, books and language, history, civic life, the media, politics and
+institutions, law, the economy, banking, office life, nature, animals and farming,
+science, energy, getting around, time, space, quantities, building a written argument, and
+the everyday French of Québec. Usage follows Canadian
 and Québec French where it differs (*le courriel*, *le cégep*, *la garderie*,
 *le stationnement*).
 
@@ -200,8 +223,12 @@ js/pwa.js, sw.js    installable app, offline support
 manifest.webmanifest
 js/speech.js        pronunciation through the browser's speech synthesis
 js/art.js           the drawn plate, theme icons, the 30-day sketch, the odd passing gull
-data/deck.js        the vocabulary
-data/glossary.js    a gloss for every word form in the example sentences
+data/deck.js        the first 13 themes; data/vocab/ holds one file per further theme
+data/glossary.js    glosses for every word form; data/gloss/ adds the rest
+data/grammar/       one file per grammar lesson (explanation + drills)
+data/reading/       one file per reading passage (text, translation, questions)
+js/lessons.js       the Grammaire and Lecture pages
+tools/              check-content.mjs (validates all content), build-index.mjs
 tests/              node:test suites for check.js, srs.js, merge.js, the deck and the glossary
 ```
 
@@ -221,7 +248,7 @@ self-hosted under the SIL Open Font License (see [`fonts/`](fonts/)).
 
 ## Roadmap
 
-- Grow the deck towards a full B1–B2 exam list (verbs with their prepositions, false friends, NCLC 7 writing connectors).
+- Listening comprehension with recorded audio, and timed mock tests.
 - A daily reminder at a chosen time.
 - Import a word list (CSV) to study your own vocabulary with the same exercises.
 - Spoken answers through the browser's speech recognition, for the speaking tasks.

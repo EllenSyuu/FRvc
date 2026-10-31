@@ -21,8 +21,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Unit tests (answer checking, schedule, vocabulary deck)
+      - name: Unit tests (answer checking, schedule, merge, vocabulary deck)
         run: npm test
+      - name: Content check (every theme, lesson and passage; every word glossed)
+        run: node tools/check-content.mjs
 
   # Deploys only once GitHub Pages is set to "GitHub Actions" (Settings → Pages → Source).
   # Until then this job reports a notice instead of failing.

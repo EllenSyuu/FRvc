@@ -1,0 +1,91 @@
+export default {
+  id: 'pronominaux',
+  n: 3,
+  fr: 'Les verbes pronominaux',
+  zh: '代词式动词',
+  level: 'B1',
+  summary: '学会 se lever、se parler 这类带自反代词的动词：代词怎么变、放在哪里、命令式和否定句怎么处理。',
+  explain: [
+    {
+      h: '什么是代词式动词',
+      p: "代词式动词的不定式前有 *se*（元音前 *s'*）：*se lever*、*s'habiller*。变位时，*se* 要随主语变成 *me, te, se, nous, vous, se*，元音或哑音 h 前省音为 *m', t', s'*。主要有三类意思：\n• **自反**：动作作用于自己——*je me lave*（我洗澡）\n• **相互**：只用于复数，“互相”——*ils se téléphonent*（他们互相打电话）\n• **固有**：只有代词式，或意思已经改变——*se souvenir de*（记得）、*s'en aller*（离开）、*se rendre compte*（意识到）",
+      table: {
+        head: ['', 'se lever', "s'habiller"],
+        rows: [
+          ['je', 'me lève', "m'habille"],
+          ['tu', 'te lèves', "t'habilles"],
+          ['il / elle / on', 'se lève', "s'habille"],
+          ['nous', 'nous levons', 'nous habillons'],
+          ['vous', 'vous levez', 'vous habillez'],
+          ['ils / elles', 'se lèvent', "s'habillent"],
+        ],
+      },
+      ex: [
+        ['Je me lève à six heures pendant la semaine.', '工作日我六点起床。'],
+        ["Les enfants s'habillent tout seuls.", '孩子们自己穿衣服。'],
+        ['Paul et Léa se téléphonent tous les soirs.', '保罗和莱娅每天晚上互相通电话。'],
+      ],
+    },
+    {
+      h: '代词的位置',
+      p: "自反代词**紧贴在动词前面**。\n• 否定：*ne* + 代词 + 动词 + *pas* → *je ne me lève pas*\n• 疑问倒装：代词 + 动词-主语 → *vous souvenez-vous ?*\n• 动词 + 不定式：代词放在**不定式**前，并且要和主语一致 → *je vais me coucher*（不是 *je vais se coucher*）",
+      ex: [
+        ['Le dimanche, je ne me réveille pas avant neuf heures.', '星期天我九点之前不醒。'],
+        ['Nous allons nous inscrire au cours de français.', '我们要报名参加法语课。'],
+        ['Tu dois te reposer un peu.', '你得休息一下。'],
+      ],
+    },
+    {
+      h: '命令式',
+      p: "**肯定**命令式：代词放到动词**后面**，用连字符连接，*te* 变成重读的 *toi*：*lève-toi*、*asseyez-vous*、*dépêchons-nous*。\n**否定**命令式：代词回到动词前，形式不变：*ne te lève pas*、*ne vous inquiétez pas*。",
+      table: {
+        head: ['', '肯定', '否定'],
+        rows: [
+          ['tu', 'Lève-toi !', 'Ne te lève pas !'],
+          ['nous', 'Levons-nous !', 'Ne nous levons pas !'],
+          ['vous', 'Levez-vous !', 'Ne vous levez pas !'],
+        ],
+      },
+      ex: [
+        ['Dépêche-toi, le train part dans cinq minutes !', '快点，火车五分钟后开！'],
+        ['Ne vous inquiétez pas, tout va bien.', '别担心，一切都好。'],
+        ['Asseyez-vous, je vous en prie.', '请坐。'],
+      ],
+    },
+    {
+      h: '代词式与非代词式的区别',
+      p: "同一个动词，有没有 *se* 意思不同：*je lave la voiture*（我洗车）/ *je me lave*（我洗澡）；*elle appelle son frère*（她给哥哥打电话）/ *elle s'appelle Julie*（她叫朱莉）。身体部位前用定冠词，因为代词已经说明“谁的”：*je me brosse les dents*（不说 *mes dents*）。",
+      ex: [
+        ['Je réveille les enfants, puis je me prépare.', '我叫醒孩子们，然后自己做准备。'],
+        ['Elle se lave les mains avant de manger.', '她饭前洗手。'],
+      ],
+    },
+  ],
+  tips: [
+    '“我要睡觉了”是 *je vais me coucher*：不定式前的代词要跟主语变，不能一律写 *se*。',
+    '“刷我的牙”说 *je me brosse les dents*，用定冠词 *les*，不用 *mes*。',
+    '肯定命令式里 *te* 变 *toi*：*lève-toi*；否定时又回到 *te*：*ne te lève pas*。',
+    '中文“互相”在法语里常常不用单独翻译，复数主语 + 代词式就够了：*ils s\'aiment*（他们相爱）。',
+  ],
+  drills: [
+    { t: 'fill', s: 'Je [[me]] couche vers vingt-trois heures.', hint: '自反代词', zh: '我大约十一点睡觉。' },
+    { t: 'fill', s: 'Comment tu [[t\'appelles]] ?', hint: "s'appeler", zh: '你叫什么名字？' },
+    { t: 'fill', s: 'Nous [[nous promenons]] au bord du fleuve.', hint: 'se promener', zh: '我们在河边散步。' },
+    { t: 'choice', s: 'Mes voisins ___ souvent dans l\'escalier.', o: ['se disputent', 'disputent', 'se dispute'], a: 0, why: '“互相争吵”是代词式 *se disputer*，复数主语配 *se disputent*。', zh: '我的邻居们经常在楼梯上吵架。' },
+    { t: 'choice', s: 'Le matin, je ___ les cheveux.', o: ['me lave', 'lave', 'me lave mes'], a: 0, why: '洗自己的头发用代词式；身体部位前用定冠词 *les*，不用 *mes*。', zh: '早上我洗头发。' },
+    { t: 'choice', s: 'Je ne ___ pas de son nom.', o: ['me souviens', 'souviens', 'souviens me'], a: 0, why: '*se souvenir de* 是固有代词式；否定时 *ne* 放在代词前，*pas* 放在动词后。', zh: '我不记得他的名字了。' },
+    { t: 'choice', s: 'Nous allons ___ demain matin.', o: ['nous lever', 'se lever', 'lever'], a: 0, why: '动词 + 不定式时，不定式前的代词要和主语一致：*nous allons nous lever*。', zh: '我们明天早上起床。' },
+    { t: 'fill', s: 'Vous devez [[vous inscrire]] avant le 15 septembre.', hint: "s'inscrire", zh: '你们必须在九月十五日之前报名。' },
+    { t: 'choice', s: '___, le film commence !', o: ['Dépêche-toi', 'Te dépêche', 'Dépêche-te'], a: 0, why: '肯定命令式中代词后置，*te* 变成 *toi*。', zh: '快点，电影开始了！' },
+    { t: 'choice', s: '___, ce n\'est pas grave.', o: ['Ne t\'inquiète pas', 'Ne inquiète-toi pas', 'Ne t\'inquiètes pas'], a: 0, why: '否定命令式代词回到动词前；*-er* 动词 *tu* 的命令式不加 *s*。', zh: '别担心，没什么大不了的。' },
+    { t: 'fill', s: 'Ils [[s\'entendent]] très bien avec leurs collègues.', hint: "s'entendre", zh: '他们和同事相处得很好。' },
+    { t: 'transform', from: 'Tu te reposes.', task: '改成肯定命令式', to: ['Repose-toi.', 'Repose-toi !'], zh: '休息一下吧。' },
+    { t: 'transform', from: 'Vous vous asseyez ici.', task: '改成否定命令式', to: ['Ne vous asseyez pas ici.', 'Ne vous asseyez pas ici !'], zh: '别坐在这里。' },
+    { t: 'transform', from: 'Je m\'habille.', task: '改成否定句', to: ["Je ne m'habille pas."], zh: '我不换衣服。' },
+    { t: 'transform', from: 'Ils s\'installent à Québec.', task: '用 aller + 不定式改成最近将来时', to: ["Ils vont s'installer à Québec."], zh: '他们要在魁北克城定居。' },
+    { t: 'transform', from: 'Elle se maquille.', task: '把主语改成 je', to: ['Je me maquille.'], zh: '我化妆。' },
+    { t: 'conj', verb: 'se réveiller', tense: 'présent', forms: ['je me réveille', 'tu te réveilles', 'il/elle se réveille', 'nous nous réveillons', 'vous vous réveillez', 'ils/elles se réveillent'] },
+    { t: 'conj', verb: "s'occuper", tense: 'présent', forms: ["je m'occupe", "tu t'occupes", "il/elle s'occupe", 'nous nous occupons', 'vous vous occupez', "ils/elles s'occupent"] },
+    { t: 'conj', verb: "s'asseoir", tense: 'présent', forms: ["je m'assieds", "tu t'assieds", "il/elle s'assied", 'nous nous asseyons', 'vous vous asseyez', "ils/elles s'asseyent"] },
+  ],
+};

@@ -11,6 +11,8 @@
  *             is the sum over devices.
  *   marked,   per key, the most recent change wins; un-marking leaves a tombstone
  *   starred   { del: true, t } so it is not resurrected by the other device's copy.
+ *   grammar,  per lesson / passage, the most recent result wins ({ best, last, t }); the
+ *   reading   best score is kept as the larger of the two.
  *   settings  the most recently saved settings win (settingsT).
  *   resetAt   "clear all progress" on any device removes everything older than it, everywhere.
  *
@@ -52,6 +54,18 @@ function mergeKeyed(a = {}, b = {}, time, cutoff) {
   return out;
 }
 
+function mergeResults(a = {}, b = {}, cutoff = 0) {
+  const out = {};
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const x = a[k];
+    const y = b[k];
+    const v = newer(x, y, e => (e && e.t) || 0);
+    if (!v || (v.t || 0) < cutoff) continue;
+    out[k] = { ...v, best: Math.max((x && x.best) || 0, (y && y.best) || 0) };
+  }
+  return out;
+}
+
 export function mergeState(a, b) {
   if (!b) return a;
   if (!a) return b;
@@ -83,6 +97,8 @@ export function mergeState(a, b) {
     log: aggregateLog(devlog),
     marked: mergeKeyed(a.marked, b.marked, entryTime, resetAt),
     starred: mergeKeyed(a.starred, b.starred, entryTime, resetAt),
+    grammar: mergeResults(a.grammar, b.grammar, resetAt),
+    reading: mergeResults(a.reading, b.reading, resetAt),
     settings: bSet > aSet ? b.settings : a.settings,
     settingsT: Math.max(aSet, bSet),
   };
@@ -97,6 +113,8 @@ export function syncable(s) {
     devlog: s.devlog || {},
     marked: s.marked || {},
     starred: s.starred || {},
+    grammar: s.grammar || {},
+    reading: s.reading || {},
     settings: s.settings,
     settingsT: s.settingsT || 0,
   };

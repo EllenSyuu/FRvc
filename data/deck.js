@@ -15,7 +15,10 @@
  * tests/deck.test.mjs check that every example has exactly one [[…]] and that ids are unique.
  */
 
-export const THEMES = [
+import MORE from './vocab/index.js';
+
+/* The first 13 themes; more themes live one per file in data/vocab/. */
+export const BASE_THEMES = [
   {
     id: 'travail',
     fr: 'Travail et emploi',
@@ -394,6 +397,8 @@ export const THEMES = [
     ],
   },
 ];
+
+export const THEMES = [...BASE_THEMES, ...MORE];
 
 /* Flat list with stable ids: "<theme>/<index>". */
 export const WORDS = THEMES.flatMap(t =>

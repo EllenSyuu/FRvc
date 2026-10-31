@@ -1,0 +1,81 @@
+export default {
+  id: 'plus-que-parfait',
+  n: 7,
+  fr: 'Le plus-que-parfait',
+  zh: '愈过去时',
+  level: 'B1',
+  summary: '用愈过去时表达“过去的过去”：在一个过去的时间点之前就已经发生的事情。',
+  explain: [
+    {
+      h: '构成',
+      p: "*avoir* 或 *être* 的**未完成过去时** + 过去分词。助动词的选择和过去分词的配合规则与复合过去时**完全相同**：*j'avais mangé*、*elle était partie*、*ils s'étaient rencontrés*。",
+      table: {
+        head: ['', 'finir', 'partir', 'se perdre'],
+        rows: [
+          ['je (j\')', 'avais fini', 'étais parti(e)', "m'étais perdu(e)"],
+          ['tu', 'avais fini', 'étais parti(e)', "t'étais perdu(e)"],
+          ['il / elle', 'avait fini', 'était parti(e)', "s'était perdu(e)"],
+          ['nous', 'avions fini', 'étions parti(e)s', 'nous étions perdu(e)s'],
+          ['vous', 'aviez fini', 'étiez parti(e)(s)', 'vous étiez perdu(e)(s)'],
+          ['ils / elles', 'avaient fini', 'étaient parti(e)s', "s'étaient perdu(e)s"],
+        ],
+      },
+      ex: [
+        ["J'avais déjà mangé quand ils m'ont invité.", '他们请我吃饭的时候，我已经吃过了。'],
+        ['Elle était partie avant la fin de la réunion.', '会议结束之前她就走了。'],
+      ],
+    },
+    {
+      h: '过去的过去：先后顺序',
+      p: "在过去的叙述里，如果要说明某件事**发生在另一件过去的事之前**，就用愈过去时。可以想象一条时间线：\n愈过去时（更早）→ 复合过去时 / 未完成过去时（过去的参照点）→ 现在\n常见搭配：*déjà*（已经）、*avant*（之前）、*jamais*（从未）、*la veille*（前一天）、*parce que*（解释原因时原因常更早）。",
+      ex: [
+        ["Quand je suis arrivé à la gare, le train était déjà parti.", '我到火车站的时候，火车已经开走了。'],
+        ["Il n'a pas pu entrer parce qu'il avait oublié ses clés.", '他进不去，因为他把钥匙忘了。'],
+        ["Avant de venir au Canada, je n'avais jamais vu autant de neige.", '来加拿大之前，我从没见过这么多雪。'],
+      ],
+    },
+    {
+      h: '转述过去说的话',
+      p: "主句动词是过去时（*il a dit que*, *elle m'a expliqué que*）时，原话里的复合过去时要变成愈过去时。\n原话：« *J'ai perdu mon passeport.* » → *Il a dit qu'il avait perdu son passeport.*",
+      ex: [
+        ["Elle m'a dit qu'elle avait trouvé un nouvel emploi.", '她告诉我她找到了一份新工作。'],
+        ["Le médecin a expliqué que le patient s'était cassé la jambe.", '医生解释说病人摔断了腿。'],
+      ],
+    },
+    {
+      h: '表示遗憾：si seulement…',
+      p: "*Si* + 愈过去时，表达对过去的遗憾或与过去事实相反的假设（结果常用条件式过去时，见“条件式”一课）：*Si seulement j'avais su !*（我要是早知道就好了！）",
+      ex: [
+        ["Si seulement j'avais écouté tes conseils !", '我要是听了你的建议就好了！'],
+        ["Si nous étions partis plus tôt, nous n'aurions pas raté l'avion.", '我们要是早点出发，就不会误了飞机。'],
+      ],
+    },
+  ],
+  tips: [
+    '中文常用“已经、之前、早就”表达先后，法语必须靠时态：两个过去动作有先后时，更早的那个用愈过去时。',
+    '助动词用的是未完成过去时：*j\'avais*、*j\'étais*，不要写成 *j\'ai eu*。',
+    '用 *être* 的愈过去时同样要配合：*elles étaient arrivées*。',
+    '转述“他说他做过……”：*il a dit qu\'il avait fait…*，不要保留 *il a fait*。',
+  ],
+  drills: [
+    { t: 'fill', s: 'Quand je suis rentré, ma femme [[avait préparé]] le dîner.', hint: 'préparer', zh: '我回家的时候，我妻子已经做好了晚饭。' },
+    { t: 'fill', s: 'Nous [[avions réservé]] une table, mais le restaurant était fermé.', hint: 'réserver', zh: '我们订了桌子，可是餐馆关门了。' },
+    { t: 'fill', s: 'Ils [[étaient arrivés]] avant nous.', hint: 'arriver', zh: '他们比我们先到了。' },
+    { t: 'choice', s: "Elle ___ la veille, alors elle était fatiguée.", o: ['avait mal dormi', 'était mal dormie', 'avait mal dormie'], a: 0, why: '前一晚没睡好发生在“累”之前，用愈过去时；*dormir* 用 *avoir*，且没有前置直接宾语，分词不配合。', zh: '她前一天晚上没睡好，所以很累。' },
+    { t: 'choice', s: 'Quand nous sommes arrivés, le concert ___.', o: ['avait déjà commencé', 'a déjà commencé', 'commence déjà'], a: 0, why: '音乐会开始早于我们到达，用愈过去时。', zh: '我们到的时候，音乐会已经开始了。' },
+    { t: 'choice', s: 'Avant ce voyage, je ___ dans un avion.', o: ["n'étais jamais monté", "n'avais jamais monté", 'ne suis jamais monté'], a: 0, why: '*monter*（不及物）用 *être*；时间在“这次旅行”之前，用愈过去时 *j\'étais monté*。', zh: '在这次旅行之前，我从没坐过飞机。' },
+    { t: 'choice', s: 'Il a dit qu\'il ___ son portefeuille.', o: ['avait perdu', 'a perdu', 'perdait'], a: 0, why: '过去时主句中转述更早发生的动作，复合过去时变成愈过去时。', zh: '他说他把钱包丢了。' },
+    { t: 'choice', s: "Les filles ___ avant minuit.", o: ['étaient rentrées', 'avaient rentré', 'étaient rentré'], a: 0, why: '*rentrer*（不及物）用 *être*，分词与阴性复数主语配合：*rentrées*。', zh: '女孩们在半夜之前就回家了。' },
+    { t: 'fill', s: 'Elle [[s\'était]] trompée d\'adresse.', hint: 'se tromper（助动词）', zh: '她走错了地址。' },
+    { t: 'choice', s: 'Si seulement j\'___ plus tôt !', o: ['étais parti', 'avais parti', 'suis parti'], a: 0, why: '*si seulement* + 愈过去时表达对过去的遗憾；*partir* 用 *être*。', zh: '我要是早点出发就好了！' },
+    { t: 'fill', s: 'Tu [[avais vu]] ce film avant ?', hint: 'voir', zh: '你以前看过这部电影吗？' },
+    { t: 'fill', s: 'Je lui ai rendu le livre qu\'il m\'[[avait prêté]].', hint: 'prêter', zh: '我把他借给我的书还给他了。' },
+    { t: 'transform', from: "J'ai fini mon travail.", task: '改成愈过去时', to: ["J'avais fini mon travail."], zh: '我那时已经做完了工作。' },
+    { t: 'transform', from: 'Nous sommes sortis.', task: '改成愈过去时', to: ['Nous étions sortis.'], zh: '我们那时已经出去了。' },
+    { t: 'transform', from: "Elle dit : « J'ai réussi l'examen. »", task: '改成间接引语：Elle a dit que…', to: ["Elle a dit qu'elle avait réussi l'examen."], zh: '她说她考试通过了。' },
+    { t: 'transform', from: "Il a oublié son parapluie. Il est arrivé trempé.", task: '用 parce que 合成一句（先说结果），原因用愈过去时', to: ["Il est arrivé trempé parce qu'il avait oublié son parapluie."], zh: '他到的时候全身湿透，因为他忘了带伞。' },
+    { t: 'conj', verb: 'faire', tense: 'plus-que-parfait', forms: ["j'avais fait", 'tu avais fait', 'il/elle avait fait', 'nous avions fait', 'vous aviez fait', 'ils/elles avaient fait'] },
+    { t: 'conj', verb: 'aller', tense: 'plus-que-parfait', forms: ["j'étais allé(e)", 'tu étais allé(e)', 'il/elle était allé(e)', 'nous étions allé(e)s', 'vous étiez allé(e)(s)', 'ils/elles étaient allé(e)s'] },
+    { t: 'conj', verb: 'se lever', tense: 'plus-que-parfait', forms: ["je m'étais levé(e)", "tu t'étais levé(e)", "il/elle s'était levé(e)", 'nous nous étions levé(e)s', 'vous vous étiez levé(e)(s)', "ils/elles s'étaient levé(e)s"] },
+  ],
+};

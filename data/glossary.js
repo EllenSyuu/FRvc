@@ -911,14 +911,22 @@ zones|区域|zones
 être|是；处于|to be
 `;
 
-export const GLOSS = Object.fromEntries(
-  RAW.trim()
+import EXTRA from './gloss/index.js';
+
+/* Base glosses first; files in data/gloss/ add the forms used by later themes, grammar and
+   reading passages. The first definition of a form wins. */
+const parse = raw =>
+  raw
+    .trim()
     .split('\n')
+    .filter(l => l.includes('|'))
     .map(l => {
-      const [form, zh, en] = l.split('|');
-      return [form, { zh, en }];
-    }),
-);
+      const [form, zh, en] = l.split('|').map(x => x.trim());
+      return [form.toLowerCase().replace(/’/g, "'"), { zh, en }];
+    });
+
+export const GLOSS = {};
+for (const raw of [RAW, ...EXTRA]) for (const [k, v] of parse(raw)) if (!(k in GLOSS)) GLOSS[k] = v;
 
 const ELISION = /^((?:jusqu|lorsqu|puisqu|qu|[ldjmnstc])['’])(.+)$/i;
 

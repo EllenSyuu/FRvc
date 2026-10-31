@@ -1,0 +1,102 @@
+export default {
+  id: 'subjonctif-emploi',
+  n: 11,
+  fr: 'Quand employer le subjonctif',
+  zh: '虚拟式的用法',
+  level: 'B2',
+  summary: '弄清什么时候必须用虚拟式、什么时候用直陈式，什么时候应该改用不定式。',
+  explain: [
+    {
+      h: '意愿、情感、必要性',
+      p: '主句表达**愿望、命令**（*vouloir que*, *souhaiter que*, *exiger que*）、**情感**（*être content que*, *avoir peur que*, *regretter que*）或**必要性**（*il faut que*, *il est important que*）时，*que* 引导的从句用虚拟式。关键是：从句的动作是"想要的、担心的、需要的"，而不是陈述的事实。',
+      ex: [
+        ['Je veux que tu viennes demain.', '我希望你明天来。'],
+        ["Nous sommes ravis que vous soyez parmi nous.", '我们很高兴您能和我们在一起。'],
+        ["Il est important que chacun puisse s'exprimer.", '重要的是每个人都能发表意见。'],
+      ],
+    },
+    {
+      h: '怀疑与可能',
+      p: '表示**怀疑、否认、不确定**时用虚拟式：*douter que*, *il est possible que*, *il semble que*, *ce n\'est pas sûr que*。但表示**确定、很可能**的说法用直陈式：*il est probable que*, *il est certain que*, *il me semble que*。',
+      ex: [
+        ["Je doute qu'il ait raison.", '我怀疑他是对的。'],
+        ["Il est possible qu'il neige ce soir.", '今晚可能会下雪。'],
+        ['Il est probable que le train aura du retard.', '火车很可能会晚点。'],
+      ],
+    },
+    {
+      h: 'penser / croire：肯定用直陈式，否定和疑问用虚拟式',
+      p: '*penser que*、*croire que*、*trouver que*、*être sûr que* 在**肯定句**中表示说话人认为是事实，用**直陈式**。在**否定句**或**倒装疑问句**中，表示怀疑，通常用**虚拟式**。',
+      ex: [
+        ["Je pense qu'elle a raison.", '我认为她是对的。'],
+        ["Je ne pense pas qu'elle ait raison.", '我不认为她是对的。'],
+        ['Croyez-vous que ce soit possible ?', '您觉得这可能吗？'],
+      ],
+      table: {
+        head: ['直陈式', '虚拟式'],
+        rows: [
+          ['je pense que', 'je ne pense pas que'],
+          ['je crois que', 'je ne crois pas que'],
+          ["je suis sûr que", "je ne suis pas sûr que"],
+          ['il est probable que', 'il est possible que'],
+          ['espérer que', 'souhaiter que'],
+        ],
+      },
+    },
+    {
+      h: '必须接虚拟式的连词',
+      p: '以下连词后面**一定**用虚拟式：*bien que*（尽管）、*pour que*（为了）、*avant que*（在……之前）、*à condition que*（只要、条件是）、*sans que*（而不）、*jusqu\'à ce que*（直到）。注意：*après que* 在规范语法中接**直陈式**；*parce que*、*pendant que* 也接直陈式。',
+      ex: [
+        ["Bien qu'il soit fatigué, il continue à travailler.", '尽管他很累，他还在继续工作。'],
+        ['Je parle lentement pour que tu comprennes.', '我说慢一点，好让你听懂。'],
+        ['Rentrons avant qu\'il fasse nuit.', '趁天黑之前回家吧。'],
+        ["Tu peux sortir à condition que tu sois de retour à dix heures.", '你可以出去，只要十点前回来。'],
+        ["Il est parti sans que personne le remarque.", '他悄悄走了，没有人注意到。'],
+      ],
+      table: {
+        head: ['后面接虚拟式', '后面接直陈式'],
+        rows: [
+          ['bien que', 'parce que'],
+          ['pour que', 'pendant que'],
+          ['avant que', 'après que'],
+          ['à condition que', 'si'],
+          ['sans que', 'alors que'],
+        ],
+      },
+    },
+    {
+      h: '同一主语：用不定式，不用 que',
+      p: '如果主句和从句的**主语相同**，不用 *que* + 虚拟式，而用**不定式**。例如不能说 *je veux que je parte*，要说 *je veux partir*。连词也相应变成介词：*pour que* → *pour*，*avant que* → *avant de*，*sans que* → *sans*，*à condition que* → *à condition de*。（*bien que* 没有不定式形式，同一主语也照样用虚拟式。）',
+      ex: [
+        ['Je veux partir tôt.', '我想早点走。'],
+        ["Elle est contente d'avoir trouvé un emploi.", '她很高兴找到了工作。'],
+        ['Lis bien les consignes avant de commencer.', '开始之前先好好读一下题目要求。'],
+      ],
+    },
+  ],
+  tips: [
+    '*espérer que* 接直陈式（*j\'espère qu\'il viendra*），而 *souhaiter que* 接虚拟式（*je souhaite qu\'il vienne*）—— 意思相近，语式不同。',
+    '同一主语时用不定式：*Je suis content que je réussisse* ✗ → *Je suis content de réussir* ✓。',
+    '*après que* 规范上接直陈式，口语中常听到虚拟式，但考试写作请用直陈式。',
+    '*il est probable que* 用直陈式，*il est possible que* 用虚拟式 —— 是考试常设的陷阱。',
+  ],
+  drills: [
+    { t: 'fill', s: 'Je veux que tu [[fasses]] tes devoirs maintenant.', hint: 'faire', zh: '我要你现在就做作业。', alt: [] },
+    { t: 'fill', s: 'Il est nécessaire que vous [[remplissiez]] ce formulaire.', hint: 'remplir', zh: '您必须填写这张表格。', alt: [] },
+    { t: 'choice', s: "Je pense qu'il ___ raison.", o: ['a', 'ait'], a: 0, why: 'penser que 肯定句表示说话人的判断，用直陈式。', zh: '我认为他是对的。' },
+    { t: 'choice', s: "Je ne crois pas qu'elle ___ la vérité.", o: ['dit', 'dise', 'dira'], a: 1, why: 'croire 用于否定句，表示怀疑，从句用虚拟式。', zh: '我不相信她说的是实话。' },
+    { t: 'choice', s: "J'espère que vous ___ un bon séjour à Montréal.", o: ['passiez', 'passerez', 'passeriez'], a: 1, why: 'espérer que 接直陈式（常用将来时），不接虚拟式。', zh: '希望您在蒙特利尔过得愉快。' },
+    { t: 'fill', s: "Nous sommes déçus que le spectacle [[soit]] annulé.", hint: 'être', zh: '演出被取消了，我们很失望。', alt: ['ait été'] },
+    { t: 'choice', s: 'Il est probable que la réunion ___ en retard.', o: ['commence', 'commencera'], a: 1, why: 'il est probable que 表示很可能，用直陈式；il est possible que 才用虚拟式。', zh: '会议很可能会推迟开始。' },
+    { t: 'fill', s: "Bien qu'il [[pleuve]], nous allons faire une promenade.", hint: 'pleuvoir', zh: '尽管在下雨，我们还是要去散步。', alt: [] },
+    { t: 'choice', s: 'Je vous explique la règle ___ vous ne fassiez plus cette erreur.', o: ['parce que', 'pour que', 'pendant que'], a: 1, why: '表示目的"为了让"用 pour que + 虚拟式；parce que 和 pendant que 接直陈式。', zh: '我给你们讲一下规则，免得你们再犯这个错。' },
+    { t: 'fill', s: "Attends ici jusqu'à ce que je [[revienne]].", hint: 'revenir', zh: '在这儿等着，直到我回来。', alt: [] },
+    { t: 'choice', s: 'Je suis content ___.', o: ['que je sois ici', "d'être ici", 'que je suis ici'], a: 1, why: '主句和从句主语相同（都是 je），应用 de + 不定式。', zh: '我很高兴来到这里。' },
+    { t: 'transform', from: 'Il part. Nous ne le voulons pas.', task: '用 Nous ne voulons pas que 合成一句', to: ['Nous ne voulons pas qu\'il parte.'], zh: '我们不希望他走。' },
+    { t: 'transform', from: "Je veux que je parle avec le directeur.", task: '改正句中的错误（同一主语）', to: ['Je veux parler avec le directeur.', 'Je veux parler au directeur.'], zh: '我想跟主任谈谈。' },
+    { t: 'choice', s: 'Elle est sortie sans que ses parents le ___.', o: ['savent', 'sachent', 'sauront'], a: 1, why: 'sans que 后面必须用虚拟式，savoir → qu\'ils sachent。', zh: '她出门了，父母却不知道。' },
+    { t: 'fill', s: "On ira au chalet à condition qu'il [[fasse]] beau.", hint: 'faire', zh: '只要天气好，我们就去小木屋。', alt: [] },
+    { t: 'choice', s: 'Après que les invités ___ partis, nous avons tout rangé.', o: ['sont', 'soient', 'étaient'], a: 2, why: 'après que 在规范法语中接直陈式；动作先于主句过去时，用 plus-que-parfait（étaient partis）。', zh: '客人们走了以后，我们把一切收拾好了。' },
+    { t: 'transform', from: 'Tu as eu ton visa. Je suis ravie.', task: '用 Je suis ravie que 合成一句', to: ['Je suis ravie que tu aies eu ton visa.'], zh: '我很高兴你拿到了签证。' },
+  ],
+};

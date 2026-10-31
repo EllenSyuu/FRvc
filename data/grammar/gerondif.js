@@ -1,0 +1,82 @@
+export default {
+  id: 'gerondif',
+  n: 13,
+  fr: 'Le gérondif et le participe présent',
+  zh: '副动词与现在分词',
+  level: 'B2',
+  summary: '学会构成和使用副动词（en + -ant），并区分它与现在分词的不同。',
+  explain: [
+    {
+      h: '构成：从 nous 的现在时出发',
+      p: '取直陈式现在时 *nous* 的形式，去掉 *-ons*，加 **-ant**：*nous parlons* → *parlant*，*nous finissons* → *finissant*，*nous faisons* → *faisant*。只有三个例外：*être* → *étant*，*avoir* → *ayant*，*savoir* → *sachant*。副动词 = ***en*** + 现在分词，形式**永远不变**。',
+      table: {
+        head: ['不定式', 'nous', '现在分词', '副动词'],
+        rows: [
+          ['marcher', 'marchons', 'marchant', 'en marchant'],
+          ['lire', 'lisons', 'lisant', 'en lisant'],
+          ['prendre', 'prenons', 'prenant', 'en prenant'],
+          ['manger', 'mangeons', 'mangeant', 'en mangeant'],
+          ['être', '（例外）', 'étant', 'en étant'],
+          ['avoir', '（例外）', 'ayant', 'en ayant'],
+          ['savoir', '（例外）', 'sachant', 'en sachant'],
+        ],
+      },
+    },
+    {
+      h: '副动词的三种主要意思',
+      p: '副动词修饰**动词**，它的主语**必须和主句主语相同**。它可以表示：① **同时**（一边……一边……）；② **方式、手段**（通过……）；③ **条件**（如果……）。加上 *tout* 可以强调同时或表示对立：*tout en travaillant*。',
+      ex: [
+        ["Elle écoute de la musique en faisant le ménage.", '她一边打扫卫生一边听音乐。'],
+        ["C'est en pratiquant tous les jours qu'on progresse.", '每天练习才能进步。'],
+        ['En prenant le métro, vous arriverez plus vite.', '坐地铁的话，您会到得更快。'],
+        ['Tout en étant très occupé, il trouve le temps de lire.', '他虽然很忙，却总能抽出时间读书。'],
+      ],
+    },
+    {
+      h: '现在分词（不加 en）',
+      p: '现在分词单独使用时，作用类似**关系从句**（*qui* + 动词）或**原因从句**，多见于书面语。它修饰的是**名词**，不一定是主句主语。和副动词一样，它**不做性数配合**。',
+      ex: [
+        ['Nous cherchons une personne parlant anglais et français.', '我们在找一位会说英法双语的人。'],
+        ['Étant malade, Sophie est restée chez elle.', '索菲因为生病，待在了家里。'],
+        ['Ayant déjà vu ce film, je préfère choisir autre chose.', '这部电影我已经看过了，我想选别的。'],
+      ],
+    },
+    {
+      h: '副动词还是现在分词？',
+      p: '看主语：副动词的动作者一定是主句主语。*J\'ai vu Paul en sortant du bureau* = **我**出办公室时看到了保罗。*J\'ai vu Paul sortant du bureau* = 我看到**保罗**正从办公室出来。',
+      ex: [
+        ["J'ai rencontré Lucie en sortant de la bibliothèque.", '我从图书馆出来的时候碰到了露西。'],
+        ["J'ai vu des enfants jouant dans la neige.", '我看到一些孩子在雪地里玩。'],
+      ],
+    },
+    {
+      h: '现在分词与动形容词',
+      p: '有些 -ant 形式也可以当**形容词**用（adjectif verbal），这时要做性数配合：*une histoire intéressante*，*des enfants obéissants*。区别是：当形容词时描述性质，当分词时表示动作，后面常带宾语或状语。',
+      ex: [['Ce sont des employés très compétents et souriants.', '这些员工能力很强，总是笑容满面。']],
+    },
+  ],
+  tips: [
+    '副动词的主语必须是主句主语。*En arrivant à la gare, le train était parti* 是错的（火车不会"到车站"）→ *En arrivant à la gare, j\'ai vu que le train était parti* ✓。',
+    '-ger、-cer 动词要保留发音：*mangeant*、*commençant*。',
+    '副动词永远不变：不要写成 *en marchante*。',
+    '中文"一边……一边……"可以直接用 *en* + -ant 表达，在口语和写作中都很自然。',
+  ],
+  drills: [
+    { t: 'fill', s: 'Il chante [[en]] prenant sa douche.', hint: '缺一个小词', zh: '他边洗澡边唱歌。', alt: [] },
+    { t: 'fill', s: 'Elle téléphone en [[conduisant]].', hint: 'conduire', zh: '她边开车边打电话。', alt: [] },
+    { t: 'fill', s: "On apprend beaucoup en [[voyageant]].", hint: 'voyager', zh: '旅行能学到很多东西。', alt: [] },
+    { t: 'choice', s: 'En ___ des légumes, tu seras en meilleure santé.', o: ['mangant', 'mangeant', 'mangeons'], a: 1, why: '-ger 动词保留 e 以保持软音：mangeant。', zh: '多吃蔬菜，你会更健康。' },
+    { t: 'fill', s: 'En [[finissant]] plus tôt, nous pourrons aller au cinéma.', hint: 'finir', zh: '早点做完的话，我们就能去看电影。', alt: [] },
+    { t: 'choice', s: '___ fatiguée, elle s\'est couchée tôt.', o: ['Étant', 'En étante', 'Ayant'], a: 0, why: 'être 的现在分词是 étant（例外），现在分词不做配合，此处表原因。', zh: '她因为累了，很早就睡了。' },
+    { t: 'fill', s: "[[Sachant]] que tu étais occupé, je ne t'ai pas appelé.", hint: 'savoir，现在分词', zh: '知道你很忙，我就没给你打电话。', alt: [] },
+    { t: 'choice', s: 'Nous recherchons un serveur ___ de l\'expérience.', o: ['en ayant', 'ayant', 'ayante'], a: 1, why: '修饰名词 un serveur，相当于 qui a，用现在分词，不加 en。', zh: '我们招聘一名有经验的服务员。' },
+    { t: 'transform', from: 'Il travaille et il écoute la radio en même temps.', task: '用副动词改写，以 Il travaille 开头', to: ['Il travaille en écoutant la radio.'], zh: '他边工作边听收音机。' },
+    { t: 'transform', from: 'Si tu lis tous les jours, tu enrichiras ton vocabulaire.', task: '用副动词改写条件', to: ['En lisant tous les jours, tu enrichiras ton vocabulaire.'], zh: '每天阅读，你的词汇量会更丰富。' },
+    { t: 'choice', s: "J'ai vu mon voisin ___ son chien dans le parc.", o: ['promenant', 'en promenant'], a: 0, why: '遛狗的是邻居，不是我，所以用现在分词修饰 mon voisin。', zh: '我看见邻居在公园里遛狗。' },
+    { t: 'choice', s: "J'ai perdu mes clés ___ du bus.", o: ['descendant', 'en descendant'], a: 1, why: '下车的是"我"（主句主语），表同时，用副动词。', zh: '我下公交车时把钥匙弄丢了。' },
+    { t: 'choice', s: 'Ce roman est vraiment ___.', o: ['passionnant', 'passionnante', 'en passionnant'], a: 0, why: '这里 -ant 形式作形容词，与 ce roman（阳性单数）配合：passionnant。', zh: '这本小说真是引人入胜。' },
+    { t: 'transform', from: "Quand je suis arrivé au bureau, j'ai vu le message.", task: '用副动词改写时间从句', to: ["En arrivant au bureau, j'ai vu le message."], zh: '我到办公室时看到了留言。' },
+    { t: 'fill', s: "Tout en [[ayant]] peu d'argent, ils sont heureux.", hint: 'avoir', zh: '他们虽然钱不多，却很幸福。', alt: [] },
+    { t: 'choice', s: "___ en retard, la réunion a commencé sans moi.", o: ['En arrivant', "Comme je suis arrivé", 'Arrivant'], a: 1, why: '主句主语是 la réunion，不是"我"，所以不能用副动词或现在分词，要用完整从句。', zh: '因为我迟到了，会议没等我就开始了。' },
+  ],
+};
